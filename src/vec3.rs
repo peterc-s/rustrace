@@ -2,7 +2,10 @@ use std::ops::{Add, AddAssign, Div, DivAssign, Index, IndexMut, Mul, MulAssign, 
 
 use image::Rgb;
 
-#[derive(Clone, Copy, Debug)]
+use interval::Interval;
+use crate::interval;
+
+#[derive(Clone, Copy, Debug, Default)]
 pub struct Vec3 {
     pub e: [f64; 3],
 }
@@ -38,10 +41,11 @@ impl Vec3 {
     }
 
     pub fn to_rgb(self) -> Rgb<u8> {
+        let intensity = interval![0.000, 0.999];
         Rgb([
-            (self[0] * 255.999) as u8,
-            (self[1] * 255.999) as u8,
-            (self[2] * 255.999) as u8
+            (intensity.clamp(self[0]) * 256.0) as u8,
+            (intensity.clamp(self[1]) * 256.0) as u8,
+            (intensity.clamp(self[2]) * 256.0) as u8,
         ])
     }
 }
