@@ -48,8 +48,6 @@ impl Hittable for Sphere {
         let norm = (p - self.centre) / self.radius;
         let mat = self.mat.clone();
 
-        // eprintln!("HIT: {:?}", mat);
-        
         let mut rec = HitRecord {
             t,
             p,

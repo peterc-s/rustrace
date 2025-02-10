@@ -3,7 +3,7 @@ use std::sync::Arc;
 use anyhow::Result;
 use camera::CameraBuilder;
 use hit_list::HittableList;
-use material::{Lambertian, Metal};
+use material::{Dielectric, Lambertian, Metal};
 use sphere::Sphere;
 use vec3::Vec3;
 
@@ -40,10 +40,15 @@ fn main() -> Result<()> {
     );
 
     let material_left = Arc::new(
-        Metal::new(
-            vec3![0.8, 0.8, 0.8],
-            0.0,
+        Dielectric::new(
+            1.50,
         )    
+    );
+
+    let material_bubble = Arc::new(
+        Dielectric::new(
+            1.00 / 1.50,
+        )
     );
 
     let material_right = Arc::new(
@@ -81,6 +86,16 @@ fn main() -> Result<()> {
                 centre: vec3![-1.0, 0.0, -1.0],
                 radius: 0.5,
                 mat: material_left,
+            }
+        )
+    );
+
+    world.add(
+        Arc::new(
+            Sphere {
+                centre: vec3![-1.0, 0.0, -1.0],
+                radius: 0.4,
+                mat: material_bubble,
             }
         )
     );
