@@ -196,9 +196,9 @@ impl Camera {
             return vec3![0.0, 0.0, 0.0];
         }
 
-        if let Some(rec) = world.hit(r, interval![0.0, INFINITY]) {
-            let direction = Vec3::random_on_hemi(rec.norm, rng);
-            return Camera::ray_colour(&ray![rec.p, direction], depth - 1, world, rng) * 0.5;
+        if let Some(rec) = world.hit(r, interval![0.001, INFINITY]) {
+            let direction = rec.norm + Vec3::random_unit(rng);
+            return Camera::ray_colour(&ray![rec.p, direction], depth - 1, world, rng) * 0.2;
         }
 
         let unit_dir = r.direction.unit();

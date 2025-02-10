@@ -3,7 +3,6 @@ use std::sync::Arc;
 use anyhow::Result;
 use camera::CameraBuilder;
 use hit_list::HittableList;
-use rayon::ThreadPoolBuilder;
 use sphere::Sphere;
 use vec3::Vec3;
 
@@ -16,17 +15,12 @@ mod interval;
 mod camera;
 
 fn main() -> Result<()> {
-    // let num_threads = num_cpus::get();
-    // ThreadPoolBuilder::new()
-    //     .num_threads(num_threads)
-    //     .build_global()
-    //     .unwrap();
-
     // Camera setup
     let camera = CameraBuilder::default()
-        .set_image_width(400)
+        .set_image_width(1920)
         .set_aspect_ratio(16.0 / 9.0)
-        .set_anti_aliasing(camera::AntiAliasing::Random(200))
+        .set_max_depth(50)
+        .set_anti_aliasing(camera::AntiAliasing::Random(400))
         .build();
 
     // World

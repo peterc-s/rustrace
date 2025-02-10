@@ -68,12 +68,13 @@ impl Vec3 {
         }
     }
 
+
     pub fn to_rgb(self) -> Rgb<u8> {
         let intensity = interval![0.000, 0.999];
         Rgb([
-            (intensity.clamp(self[0]) * 256.0) as u8,
-            (intensity.clamp(self[1]) * 256.0) as u8,
-            (intensity.clamp(self[2]) * 256.0) as u8,
+            (intensity.clamp(linear_to_gamma(self[0])) * 256.0) as u8,
+            (intensity.clamp(linear_to_gamma(self[1])) * 256.0) as u8,
+            (intensity.clamp(linear_to_gamma(self[2])) * 256.0) as u8,
         ])
     }
 
@@ -91,6 +92,14 @@ pub fn cross<T>(u: &Vec3, v: &Vec3) -> Vec3 {
         u[2] * v[0] - u[0] * v[2],
         u[0] * v[1] - u[1] * v[0]
     ]
+}
+
+fn linear_to_gamma(linear_component: f64) -> f64 {
+    if linear_component > 0.0 {
+        linear_component.sqrt()
+    } else {
+        0.0
+    }
 }
 
 impl Add for Vec3 {
