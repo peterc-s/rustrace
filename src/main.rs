@@ -23,6 +23,10 @@ fn main() -> Result<()> {
         .set_aspect_ratio(16.0 / 9.0)
         .set_max_depth(20)
         .set_anti_aliasing(camera::AntiAliasing::Random(200))
+        .set_look_from(vec3![-2.0, 2.0, 1.0])
+        .set_look_at(vec3![0.0, 0.0, -1.0])
+        .set_v_up(vec3![0.0, 1.0, 0.0])
+        .set_vfov(20)
         .build();
 
     // Materials

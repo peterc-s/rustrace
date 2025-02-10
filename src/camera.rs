@@ -1,3 +1,4 @@
+use std::f64::consts::PI;
 use std::f64::INFINITY;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::{Arc, Mutex};
@@ -10,7 +11,7 @@ use rayon::iter::{IntoParallelIterator, ParallelIterator};
 
 use crate::hit::Hittable;
 use crate::ray::Ray;
-use crate::vec3::Vec3;
+use crate::vec3::{cross, Vec3};
 use crate::interval::Interval;
 use crate::{interval, vec3, ray};
 
@@ -36,6 +37,10 @@ pub struct CameraBuilder {
     image_width: u32,
     anti_aliasing: AntiAliasing,
     max_depth: u32,
+    vfov: u16,
+    look_from: Vec3,
+    look_at: Vec3,
+    v_up: Vec3,
 }
 
 impl Default for CameraBuilder {
@@ -45,6 +50,10 @@ impl Default for CameraBuilder {
             image_width: 100,
             anti_aliasing: AntiAliasing::Grid(4),
             max_depth: 10,
+            vfov: 90,
+            look_from: vec3![0.0, 0.0, 0.0],
+            look_at: vec3![0.0, 0.0, -1.0],
+            v_up: vec3![0.0, 1.0, 0.0],
         }
     }
 }
@@ -79,21 +88,56 @@ impl CameraBuilder {
         }
     }
 
+    pub fn set_vfov(self, vfov: u16) -> CameraBuilder {
+        CameraBuilder {
+            vfov,
+            ..self
+        }
+    }
+
+    pub fn set_look_from(self, look_from: Vec3) -> CameraBuilder {
+        CameraBuilder {
+            look_from,
+            ..self
+        }
+    }
+
+    pub fn set_look_at(self, look_at: Vec3) -> CameraBuilder {
+        CameraBuilder {
+            look_at,
+            ..self
+        }
+    }
+
+    pub fn set_v_up(self, v_up: Vec3) -> CameraBuilder {
+        CameraBuilder {
+            v_up,
+            ..self
+        }
+    }
+
     pub fn build(self) -> Camera {
         let image_height = (self.image_width as f64 / self.aspect_ratio) as u32;
-        let centre = vec3![0.0, 0.0, 0.0];
-        let focal_length = 1.0;
-        let viewport_height = 2.0;
+        let centre = self.look_from;
+
+        let focal_length = (self.look_from - self.look_at).length();
+        let theta = self.vfov as f64 * PI / 180.0;
+        let h = (theta / 2.0).tan();
+        let viewport_height = 2.0 * h * focal_length;
         let viewport_width = viewport_height * (self.image_width as f64 / image_height as f64);
 
-        let viewport_u = vec3![viewport_width, 0.0, 0.0];
-        let viewport_v = vec3![0.0, -viewport_height, 0.0];
+        let w = (self.look_from - self.look_at).unit();
+        let u = (cross(&self.v_up, &w)).unit();
+        let v = cross(&w, &u);
+
+        let viewport_u = u * viewport_width;
+        let viewport_v = -v * viewport_height;
 
         let pixel_delta_u = viewport_u / self.image_width;
         let pixel_delta_v = viewport_v / image_height;
 
         let viewport_upper_left = centre
-                                - vec3![0.0, 0.0, focal_length]
+                                - (w * focal_length)
                                 - viewport_u / 2
                                 - viewport_v / 2;
 
@@ -119,6 +163,9 @@ impl CameraBuilder {
             pixel00_loc,
             pixel_delta_u,
             pixel_delta_v,
+            u,
+            v,
+            w,
         }
 
     }
@@ -136,6 +183,9 @@ pub struct Camera {
     pixel00_loc: Vec3,
     pixel_delta_u: Vec3,
     pixel_delta_v: Vec3,
+    u: Vec3,
+    v: Vec3,
+    w: Vec3,
 }
 
 impl AntiAliasingGrid for Camera {
