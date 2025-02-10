@@ -1,7 +1,12 @@
 use std::f64::INFINITY;
+use std::sync::atomic::{AtomicUsize, Ordering};
+use std::sync::{Arc, Mutex};
 
 use image::RgbImage;
-use anyhow::Result;
+use anyhow::{Result, anyhow};
+use rand::{rngs::SmallRng, Rng};
+use rand::SeedableRng;
+use rayon::iter::{IntoParallelIterator, ParallelIterator};
 
 use crate::hit::Hittable;
 use crate::ray::Ray;
@@ -10,10 +15,27 @@ use crate::interval::Interval;
 use crate::{interval, vec3, ray};
 
 #[derive(Debug, Clone, Copy)]
+pub enum AntiAliasing {
+    Grid(u16),
+    Random(u16),
+}
+
+trait AntiAliasingGrid {
+    fn sample_grid(self, sample: u16) -> Result<Vec3>;
+    fn get_ray_grid(self, i: u32, j: u32, sample: u16) -> Result<Ray>;
+}
+
+trait AntiAliasingRandom {
+    fn sample_random(self, rng: &mut SmallRng) -> Result<Vec3>;
+    fn get_ray_random(self, i: u32, j: u32, rng: &mut SmallRng) -> Result<Ray>;
+}
+
+#[derive(Debug, Clone, Copy)]
 pub struct CameraBuilder {
     aspect_ratio: f64,
     image_width: u32,
-    sample_grid_size: u8,
+    anti_aliasing: AntiAliasing,
+    max_depth: u32,
 }
 
 impl Default for CameraBuilder {
@@ -21,7 +43,8 @@ impl Default for CameraBuilder {
         CameraBuilder {
             aspect_ratio: 1.0,
             image_width: 100,
-            sample_grid_size: 4,
+            anti_aliasing: AntiAliasing::Grid(4),
+            max_depth: 10,
         }
     }
 }
@@ -42,9 +65,16 @@ impl CameraBuilder {
         }
     }
 
-    pub fn set_sample_grid_size(self, sample_grid_size: u8) -> CameraBuilder {
+    pub fn set_anti_aliasing(self, anti_aliasing: AntiAliasing) -> CameraBuilder {
         CameraBuilder {
-            sample_grid_size,
+            anti_aliasing,
+            ..self
+        }
+    }
+
+    pub fn set_max_depth(self, max_depth: u32) -> CameraBuilder {
+        CameraBuilder {
+            max_depth,
             ..self
         }
     }
@@ -69,12 +99,20 @@ impl CameraBuilder {
 
         let pixel00_loc = viewport_upper_left + (pixel_delta_u + pixel_delta_v) * 0.5;
 
-        let samples_scale = 1.0 / (self.sample_grid_size.pow(2) as f64);
+        let samples_scale = match self.anti_aliasing {
+            AntiAliasing::Grid(size) => {
+                1.0 / (size.pow(2) as f64)
+            },
+            AntiAliasing::Random(number) => {
+                1.0 / (number as f64)
+            }
+        };
 
         Camera {
             // aspect_ratio: self.aspect_ratio,
             image_width: self.image_width,
-            sample_grid_size: self.sample_grid_size,
+            anti_aliasing: self.anti_aliasing,
+            max_depth: self.max_depth,
             image_height,
             samples_scale,
             centre,
@@ -89,20 +127,78 @@ impl CameraBuilder {
 #[derive(Debug, Clone, Copy)]
 pub struct Camera {
     // pub aspect_ratio: f64,
+    pub anti_aliasing: AntiAliasing,
     pub image_width: u32,
-    pub sample_grid_size: u8,
     image_height: u32,
     samples_scale: f64,
+    max_depth: u32,
     centre: Vec3,
     pixel00_loc: Vec3,
     pixel_delta_u: Vec3,
     pixel_delta_v: Vec3,
 }
 
+impl AntiAliasingGrid for Camera {
+    fn sample_grid(self, sample: u16) -> Result<Vec3> {
+        if let AntiAliasing::Grid(size) = self.anti_aliasing {
+            let grid_size = size as f64;
+            return Ok(vec3![
+                0.5 - (sample % size as u16) as f64 / (grid_size - 1.0),
+                0.5 - (sample / size as u16) as f64 / (grid_size - 1.0),
+                0.0
+            ])
+        } else {
+            Err(anyhow!("Sample grid called when AntiAliasing mode is not Grid."))
+        }
+    }
+
+    fn get_ray_grid(self, i: u32, j: u32, sample: u16) -> Result<Ray> {
+        let offset = self.sample_grid(sample)?;
+        let pixel_sample = self.pixel00_loc
+                         + (self.pixel_delta_u * (i as f64 + offset[0]))
+                         + (self.pixel_delta_v * (j as f64 + offset[1]));
+
+        let ray_direction = pixel_sample - self.centre;
+
+        Ok(ray!(self.centre, ray_direction))
+    }
+}
+
+impl AntiAliasingRandom for Camera {
+    fn sample_random(self, rng: &mut SmallRng) -> Result<Vec3> {
+        match self.anti_aliasing {
+            AntiAliasing::Random(_) => {}
+            _ => { return Err(anyhow!("Sample random called when AntiAliasing mode is not Random.")) }
+        }
+
+        Ok(vec3![
+            rng.random_range(-0.5..=0.5),
+            rng.random_range(-0.5..=0.5),
+            0.0
+        ])
+    }
+
+    fn get_ray_random(self, i: u32, j: u32, rng: &mut SmallRng) -> Result<Ray> {
+        let offset = self.sample_random(rng)?;
+        let pixel_sample = self.pixel00_loc
+                         + (self.pixel_delta_u * (i as f64 + offset[0]))
+                         + (self.pixel_delta_v * (j as f64 + offset[1]));
+
+        let ray_direction = pixel_sample - self.centre;
+
+        Ok(ray!(self.centre, ray_direction))
+    }
+}
+
 impl Camera {
-    fn ray_colour(r: &Ray, world: &dyn Hittable) -> Vec3 {
+    fn ray_colour(r: &Ray, depth: u32, world: &dyn Hittable, rng: &mut SmallRng) -> Vec3 {
+        if depth <= 0 {
+            return vec3![0.0, 0.0, 0.0];
+        }
+
         if let Some(rec) = world.hit(r, interval![0.0, INFINITY]) {
-            return (rec.norm + vec3![1.0, 1.0, 1.0]) * 0.5;
+            let direction = Vec3::random_on_hemi(rec.norm, rng);
+            return Camera::ray_colour(&ray![rec.p, direction], depth - 1, world, rng) * 0.5;
         }
 
         let unit_dir = r.direction.unit();
@@ -110,44 +206,48 @@ impl Camera {
         vec3![1.0, 1.0, 1.0] * (1.0 - a) + vec3![0.5, 0.7, 1.0] * a
     }
 
-    fn sample_grid(self, sample: u16) -> Vec3 {
-        let grid_size = self.sample_grid_size as f64;
-        return vec3![
-            0.5 - (sample % self.sample_grid_size as u16) as f64 / (grid_size - 1.0),
-            0.5 - (sample / self.sample_grid_size as u16) as f64 / (grid_size - 1.0),
-            0.0
-        ]
-    }
-
-    fn get_ray(self, i: u32, j: u32, sample: u16) -> Ray {
-        let offset = self.sample_grid(sample);
-        let pixel_sample = self.pixel00_loc
-                         + (self.pixel_delta_u * (i as f64 + offset[0]))
-                         + (self.pixel_delta_v * (j as f64 + offset[1]));
-
-        let ray_direction = pixel_sample - self.centre;
-
-        ray!(self.centre, ray_direction)
-    }
-
     pub fn render(self, output: &str, world: &dyn Hittable) -> Result<()> {
-        let mut img = RgbImage::new(self.image_width, self.image_height);
+        let img = Arc::new(Mutex::new(RgbImage::new(self.image_width, self.image_height)));
+        let lines_done = Arc::new(AtomicUsize::new(0));
 
-        for j in 0..self.image_height {
-            eprint!("\rLines: {}/{}", j + 1, self.image_height);
+        (0..self.image_height).into_par_iter().for_each(|j| {
+            let mut rng = SmallRng::from_os_rng();
+            let mut row = vec![];
             for i in 0..self.image_width {
                 let mut pixel_colour = vec3![0.0, 0.0, 0.0];
-                for sample in 0..self.sample_grid_size.pow(2) as u16 {
-                    let r = self.get_ray(i, j, sample);
-                    pixel_colour += Camera::ray_colour(&r, world);
-                }
 
-                img.put_pixel(i, j, (pixel_colour * self.samples_scale).to_rgb());
+                match self.anti_aliasing {
+                    AntiAliasing::Grid(size) => {
+                        for sample in 0..size.pow(2) as u16 {
+                            let r = self.get_ray_grid(i, j, sample).unwrap();
+                            pixel_colour += Camera::ray_colour(&r, self.max_depth, world, &mut rng);
+                        }
+                    },
+                    AntiAliasing::Random(number) => {
+                        for _ in 0..number {
+                            let r = self.get_ray_random(i, j, &mut rng).unwrap();
+                            pixel_colour += Camera::ray_colour(&r, self.max_depth, world, &mut rng);
+                        }
+                    }
+                }
+                
+                row.push((pixel_colour * self.samples_scale).to_rgb());
             }
-        }
+            
+            eprint!("\rLines: {}/{}", lines_done.load(Ordering::SeqCst) + 1, self.image_height);
+            let mut img = img.lock().unwrap();
+            for (i, pixel) in row.into_iter().enumerate() {
+                img.put_pixel(i as u32, j, pixel);
+            }
+            
+            lines_done.fetch_add(1, Ordering::SeqCst);
+        });
 
         eprintln!("\nSaving...");
-        img.save(output)?;
+        {
+            let img = img.lock().unwrap();
+            img.save(output)?;
+        }
         eprintln!("Saved to {}!", output);
 
         Ok(())

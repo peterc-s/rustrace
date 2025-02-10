@@ -3,6 +3,7 @@ use std::ops::{Add, AddAssign, Div, DivAssign, Index, IndexMut, Mul, MulAssign, 
 use image::Rgb;
 
 use interval::Interval;
+use rand::{rngs::SmallRng, Rng};
 use crate::interval;
 
 #[derive(Clone, Copy, Debug, Default)]
@@ -40,6 +41,33 @@ impl Vec3 {
         self / self.length()
     }
 
+    pub fn random(rng: &mut SmallRng) -> Self {
+        vec3![rng.random_range(0.0..=1.0), rng.random_range(0.0..=1.0), rng.random_range(0.0..=1.0)]
+    }
+
+    pub fn random_in(min: f64, max: f64, rng: &mut SmallRng) -> Self {
+        vec3![rng.random_range(min..=max), rng.random_range(min..=max), rng.random_range(min..=max)]
+    }
+
+    pub fn random_unit(rng: &mut SmallRng) -> Self {
+        loop {
+            let p = Vec3::random_in(-1.0, 1.0, rng);
+            let lensq = p.length_squared();
+            if 1e-160 < lensq && lensq <= 1.0 {
+                return p / lensq.sqrt();
+            }
+        }
+    }
+
+    pub fn random_on_hemi(normal: Vec3, rng: &mut SmallRng) -> Self {
+        let on_unit_sphere = Vec3::random_unit(rng);
+        if dot(&on_unit_sphere, &normal) > 0.0 {
+            on_unit_sphere
+        } else {
+            -on_unit_sphere
+        }
+    }
+
     pub fn to_rgb(self) -> Rgb<u8> {
         let intensity = interval![0.000, 0.999];
         Rgb([
@@ -48,6 +76,7 @@ impl Vec3 {
             (intensity.clamp(self[2]) * 256.0) as u8,
         ])
     }
+
 }
 
 pub fn dot(u: &Vec3, v: &Vec3) -> f64 {
