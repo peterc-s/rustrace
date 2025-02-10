@@ -20,7 +20,7 @@ macro_rules! vec3 {
 
 #[allow(dead_code)]
 impl Vec3 {
-    pub fn new(a: f64, b: f64, c: f64) -> Vec3 {
+    pub fn new(a: f64, b: f64, c: f64) -> Self {
         Vec3 {
             e: [a, b, c]
         }
@@ -41,11 +41,11 @@ impl Vec3 {
         *self / self.length()
     }
 
-    pub fn reflect(&self, norm: &Vec3) -> Vec3 {
+    pub fn reflect(&self, norm: &Vec3) -> Self {
         *self - (*norm * 2.0 * dot(self, norm))
     }
 
-    pub fn refract(&self, norm: &Vec3, etai_over_etat: f64) -> Vec3 {
+    pub fn refract(&self, norm: &Vec3, etai_over_etat: f64) -> Self {
         let cos_theta = dot(&-*self, norm).min(1.0);
         let r_out_perp = (*self + *norm * cos_theta) * etai_over_etat;
         let r_out_parallel = *norm * -(1.0 - r_out_perp.length_squared()).abs().sqrt();
@@ -86,6 +86,14 @@ impl Vec3 {
         }
     }
 
+    pub fn random_in_unit_disc(rng: &mut SmallRng) -> Self {
+        loop {
+            let p = vec3![rng.random_range(-1.0..=1.0), rng.random_range(-1.0..=1.0), 0.0];
+            if p.length_squared() < 1.0 {
+                return p;
+            }
+        }
+    }
 
     pub fn to_rgb(self) -> Rgb<u8> {
         let intensity = interval![0.000, 0.999];

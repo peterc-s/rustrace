@@ -1,4 +1,3 @@
-use std::f64::consts::PI;
 use std::f64::INFINITY;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::{Arc, Mutex};
@@ -11,6 +10,7 @@ use rayon::iter::{IntoParallelIterator, ParallelIterator};
 
 use crate::hit::Hittable;
 use crate::ray::Ray;
+use crate::utils::deg_to_rad;
 use crate::vec3::{cross, Vec3};
 use crate::interval::Interval;
 use crate::{interval, vec3, ray};
@@ -23,12 +23,16 @@ pub enum AntiAliasing {
 
 trait AntiAliasingGrid {
     fn sample_grid(self, sample: u16) -> Result<Vec3>;
-    fn get_ray_grid(self, i: u32, j: u32, sample: u16) -> Result<Ray>;
+    fn get_ray_grid(self, i: u32, j: u32, sample: u16, rng: &mut SmallRng) -> Result<Ray>;
 }
 
 trait AntiAliasingRandom {
     fn sample_random(self, rng: &mut SmallRng) -> Result<Vec3>;
     fn get_ray_random(self, i: u32, j: u32, rng: &mut SmallRng) -> Result<Ray>;
+}
+
+trait Defocus {
+    fn defocus_disc_sample(&self, rng: &mut SmallRng) -> Vec3;
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -41,6 +45,8 @@ pub struct CameraBuilder {
     look_from: Vec3,
     look_at: Vec3,
     v_up: Vec3,
+    defocus_angle: f64,
+    focus_dist: f64,
 }
 
 impl Default for CameraBuilder {
@@ -54,6 +60,8 @@ impl Default for CameraBuilder {
             look_from: vec3![0.0, 0.0, 0.0],
             look_at: vec3![0.0, 0.0, -1.0],
             v_up: vec3![0.0, 1.0, 0.0],
+            defocus_angle: 0.0,
+            focus_dist: 10.0,
         }
     }
 }
@@ -116,14 +124,38 @@ impl CameraBuilder {
         }
     }
 
-    pub fn build(self) -> Camera {
-        let image_height = (self.image_width as f64 / self.aspect_ratio) as u32;
-        let centre = self.look_from;
+    pub fn set_defocus_angle(self, defocus_angle: f64) -> CameraBuilder {
+        CameraBuilder {
+            defocus_angle,
+            ..self
+        }
+    }
 
-        let focal_length = (self.look_from - self.look_at).length();
-        let theta = self.vfov as f64 * PI / 180.0;
+    pub fn set_focus_dist(self, focus_dist: f64) -> CameraBuilder {
+        CameraBuilder {
+            focus_dist,
+            ..self
+        }
+    }
+
+    pub fn build(self) -> Camera {
+        let mut image_height = (self.image_width as f64 / self.aspect_ratio) as u32;
+        image_height = if image_height < 1 { 1 } else { image_height };
+
+        let samples_scale = match self.anti_aliasing {
+            AntiAliasing::Grid(size) => {
+                1.0 / (size.pow(2) as f64)
+            },
+            AntiAliasing::Random(number) => {
+                1.0 / (number as f64)
+            }
+        };
+
+        let centre = self.look_from;
+        
+        let theta = deg_to_rad(self.vfov as f64);
         let h = (theta / 2.0).tan();
-        let viewport_height = 2.0 * h * focal_length;
+        let viewport_height = 2.0 * h * self.focus_dist;
         let viewport_width = viewport_height * (self.image_width as f64 / image_height as f64);
 
         let w = (self.look_from - self.look_at).unit();
@@ -137,37 +169,34 @@ impl CameraBuilder {
         let pixel_delta_v = viewport_v / image_height;
 
         let viewport_upper_left = centre
-                                - (w * focal_length)
+                                - (w * self.focus_dist)
                                 - viewport_u / 2
                                 - viewport_v / 2;
 
         let pixel00_loc = viewport_upper_left + (pixel_delta_u + pixel_delta_v) * 0.5;
 
-        let samples_scale = match self.anti_aliasing {
-            AntiAliasing::Grid(size) => {
-                1.0 / (size.pow(2) as f64)
-            },
-            AntiAliasing::Random(number) => {
-                1.0 / (number as f64)
-            }
-        };
+        let defocus_rad = self.focus_dist * deg_to_rad(self.defocus_angle / 2.0).tan();
+        let defocus_disc_u = u * defocus_rad;
+        let defocus_disc_v = v * defocus_rad;
 
         Camera {
             // aspect_ratio: self.aspect_ratio,
             image_width: self.image_width,
             anti_aliasing: self.anti_aliasing,
             max_depth: self.max_depth,
+            defocus_angle: self.defocus_angle,
             image_height,
             samples_scale,
             centre,
             pixel00_loc,
             pixel_delta_u,
             pixel_delta_v,
-            u,
-            v,
-            w,
+            // u,
+            // v,
+            // w,
+            defocus_disc_u,
+            defocus_disc_v,
         }
-
     }
 }
 
@@ -183,9 +212,12 @@ pub struct Camera {
     pixel00_loc: Vec3,
     pixel_delta_u: Vec3,
     pixel_delta_v: Vec3,
-    u: Vec3,
-    v: Vec3,
-    w: Vec3,
+    // u: Vec3,
+    // v: Vec3,
+    // w: Vec3,
+    defocus_angle: f64,
+    defocus_disc_u: Vec3,
+    defocus_disc_v: Vec3,
 }
 
 impl AntiAliasingGrid for Camera {
@@ -202,15 +234,21 @@ impl AntiAliasingGrid for Camera {
         }
     }
 
-    fn get_ray_grid(self, i: u32, j: u32, sample: u16) -> Result<Ray> {
+    fn get_ray_grid(self, i: u32, j: u32, sample: u16, rng: &mut SmallRng) -> Result<Ray> {
         let offset = self.sample_grid(sample)?;
         let pixel_sample = self.pixel00_loc
                          + (self.pixel_delta_u * (i as f64 + offset[0]))
                          + (self.pixel_delta_v * (j as f64 + offset[1]));
+        
+        let ray_origin = if self.defocus_angle <= 0.0 {
+            self.centre 
+        } else { 
+            self.defocus_disc_sample(rng)
+        };
 
-        let ray_direction = pixel_sample - self.centre;
+        let ray_direction = pixel_sample - ray_origin;
 
-        Ok(ray!(self.centre, ray_direction))
+        Ok(ray!(ray_origin, ray_direction))
     }
 }
 
@@ -234,9 +272,22 @@ impl AntiAliasingRandom for Camera {
                          + (self.pixel_delta_u * (i as f64 + offset[0]))
                          + (self.pixel_delta_v * (j as f64 + offset[1]));
 
-        let ray_direction = pixel_sample - self.centre;
+        let ray_origin = if self.defocus_angle <= 0.0 {
+            self.centre 
+        } else { 
+            self.defocus_disc_sample(rng)
+        };
 
-        Ok(ray!(self.centre, ray_direction))
+        let ray_direction = pixel_sample - ray_origin;
+
+        Ok(ray!(ray_origin, ray_direction))
+    }
+}
+
+impl Defocus for Camera {
+    fn defocus_disc_sample(&self, rng: &mut SmallRng) -> Vec3 {
+        let p = Vec3::random_in_unit_disc(rng);
+        self.centre + (self.defocus_disc_u * p[0]) + (self.defocus_disc_v * p[1])
     }
 }
 
@@ -271,7 +322,7 @@ impl Camera {
                 match self.anti_aliasing {
                     AntiAliasing::Grid(size) => {
                         for sample in 0..size.pow(2) as u16 {
-                            let r = self.get_ray_grid(i, j, sample).unwrap();
+                            let r = self.get_ray_grid(i, j, sample, &mut rng).unwrap();
                             pixel_colour += Camera::ray_colour(&r, self.max_depth, world, &mut rng);
                         }
                     },

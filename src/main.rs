@@ -15,18 +15,21 @@ mod hit_list;
 mod interval;
 mod camera;
 mod material;
+mod utils;
 
 fn main() -> Result<()> {
     // Camera setup
     let camera = CameraBuilder::default()
         .set_image_width(600)
         .set_aspect_ratio(16.0 / 9.0)
-        .set_max_depth(20)
-        .set_anti_aliasing(camera::AntiAliasing::Random(200))
+        .set_max_depth(50)
+        .set_anti_aliasing(camera::AntiAliasing::Random(400))
+        .set_vfov(20)
         .set_look_from(vec3![-2.0, 2.0, 1.0])
         .set_look_at(vec3![0.0, 0.0, -1.0])
         .set_v_up(vec3![0.0, 1.0, 0.0])
-        .set_vfov(20)
+        .set_defocus_angle(10.0)
+        .set_focus_dist(3.4)
         .build();
 
     // Materials
