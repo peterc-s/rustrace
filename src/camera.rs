@@ -197,8 +197,10 @@ impl Camera {
         }
 
         if let Some(rec) = world.hit(r, interval![0.001, INFINITY]) {
-            let direction = rec.norm + Vec3::random_unit(rng);
-            return Camera::ray_colour(&ray![rec.p, direction], depth - 1, world, rng) * 0.2;
+            if let Ok((scattered, attenuation)) = rec.mat.scatter(r, &rec, Some(rng)) {
+                return attenuation * Camera::ray_colour(&scattered, depth - 1, world, rng);
+            }
+            return vec3![0.0, 0.0, 0.0];
         }
 
         let unit_dir = r.direction.unit();

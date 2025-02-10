@@ -1,17 +1,21 @@
-use crate::{hit::{HitRecord, Hittable}, interval::Interval, ray::Ray, vec3::{dot, Vec3}};
+use std::sync::Arc;
 
-#[derive(Debug, Default, Clone, Copy)]
+use crate::{hit::{HitRecord, Hittable}, interval::Interval, material::Material, ray::Ray, vec3::{dot, Vec3}};
+
+#[derive(Debug, Clone)]
 pub struct Sphere {
     pub centre: Vec3,
     pub radius: f64,
+    pub mat: Arc<dyn Material>,
 }
 
 #[allow(dead_code)]
 impl Sphere {
-    fn new(centre: Vec3, radius: f64) -> Sphere {
+    fn new(centre: Vec3, radius: f64, mat: Arc<dyn Material>) -> Sphere {
         Sphere {
             centre,
             radius: radius.max(0.0),
+            mat,
         }
     } 
 }
@@ -38,13 +42,22 @@ impl Hittable for Sphere {
             }
         }
 
-        let mut rec = HitRecord::default();
+        let t = root;
+        let p = r.at(root);
+        let outward_norm = (p - self.centre) / self.radius;
+        let norm = (p - self.centre) / self.radius;
+        let mat = self.mat.clone();
 
-        rec.t = root;
-        rec.p = r.at(root);
-        let outward_norm = (rec.p - self.centre) / self.radius;
+        // eprintln!("HIT: {:?}", mat);
         
-        rec.norm = (rec.p - self.centre) / self.radius;
+        let mut rec = HitRecord {
+            t,
+            p,
+            norm,
+            mat,
+            front_face: false,
+        };
+
         rec.set_face_norm(r, &outward_norm);
 
         Some(rec)

@@ -146,6 +146,18 @@ impl SubAssign for Vec3 {
     }
 }
 
+impl Mul for Vec3 {
+    type Output = Self;
+
+    fn mul(self, rhs: Self) -> Self::Output {
+        vec3![
+            self[0] * rhs[0],
+            self[1] * rhs[1],
+            self[2] * rhs[2]
+        ]
+    }
+}
+
 impl <K> Mul<K> for Vec3
 where K: Mul + Into<f64> + Copy
 {
