@@ -3,7 +3,7 @@ use std::sync::Arc;
 use anyhow::Result;
 use camera::CameraBuilder;
 use hit_list::HittableList;
-use material::Lambertian;
+use material::{Lambertian, Metal};
 use sphere::Sphere;
 use vec3::Vec3;
 
@@ -25,40 +25,72 @@ fn main() -> Result<()> {
         .set_anti_aliasing(camera::AntiAliasing::Random(200))
         .build();
 
+    // Materials
+    let material_ground = Arc::new(
+        Lambertian::new(
+            vec3![0.8, 0.8, 0.0]
+        )    
+    );
+
+    let material_centre = Arc::new(
+        Metal::new(
+            vec3![0.1, 0.2, 0.5],
+            1.0,
+        )
+    );
+
+    let material_left = Arc::new(
+        Metal::new(
+            vec3![0.8, 0.8, 0.8],
+            0.0,
+        )    
+    );
+
+    let material_right = Arc::new(
+        Metal::new(
+            vec3![0.8, 0.6, 0.2],
+            0.3,
+        )
+    );
+
     // World
     let mut world = HittableList::default();
     world.add(
         Arc::new(
             Sphere {
-                centre: vec3![0.0, 0.0, -1.0],
-                radius: 0.5,
-                mat: Arc::new(
-                    Lambertian::new(vec3![1.0, 0.0, 0.0])
-                )
-            }
-        )
-    );
-
-    world.add(
-        Arc::new(
-            Sphere {
-                centre: vec3![-3.0, 1.5, -3.0],
-                radius: 1.0,
-                mat: Arc::new(
-                    Lambertian::new(vec3![1.0, 1.0, 1.0])
-                )
-            }
-        )
-    );
-
-    world.add(
-        Arc::new(
-            Sphere {
                 centre: vec3![0.0, -100.5, -1.0],
                 radius: 100.0,
-                mat: Arc::new(
-                    Lambertian::new(vec3![0.1, 1.0, 0.2])
-                )
+                mat: material_ground,
+            }
+        )
+    );
+
+    world.add(
+        Arc::new(
+            Sphere {
+                centre: vec3![0.0, 0.0, -1.2],
+                radius: 0.5,
+                mat: material_centre,
+            }
+        )
+    );
+
+    world.add(
+        Arc::new(
+            Sphere {
+                centre: vec3![-1.0, 0.0, -1.0],
+                radius: 0.5,
+                mat: material_left,
+            }
+        )
+    );
+
+    world.add(
+        Arc::new(
+            Sphere {
+                centre: vec3![1.0, 0.0, -1.0],
+                radius: 0.5,
+                mat: material_right,
             }
         )
     );

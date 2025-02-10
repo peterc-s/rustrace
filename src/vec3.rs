@@ -26,19 +26,30 @@ impl Vec3 {
         }
     }
 
-    pub fn length_squared(self) -> f64 {
+    pub fn length_squared(&self) -> f64 {
         let x: f64 = self[0].into();
         let y: f64 = self[1].into();
         let z: f64 = self[2].into();
         x * x + y * y + z * z
     }
 
-    pub fn length(self) -> f64 {
+    pub fn length(&self) -> f64 {
         self.length_squared().sqrt()
     }
 
-    pub fn unit(self) -> Self {
-        self / self.length()
+    pub fn unit(&self) -> Self {
+        *self / self.length()
+    }
+
+    pub fn reflect(&self, norm: &Vec3) -> Vec3 {
+        *self - (*norm * 2.0 * dot(self, norm))
+    }
+
+    pub fn near_zero(self) -> bool {
+        let eps = 1e-8;
+        (self[0].abs() < eps) &&
+        (self[1].abs() < eps) &&
+        (self[2].abs() < eps)
     }
 
     pub fn random(rng: &mut SmallRng) -> Self {
