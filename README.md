@@ -1,6 +1,8 @@
 # rustrace
 Raytracer in Rust rougly following [Raytracing in One Weekend](https://raytracing.github.io/).
 
+![](final.png)
+
 ## Features
 - Spheres only right now.
 - Materials:
