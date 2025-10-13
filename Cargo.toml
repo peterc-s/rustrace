@@ -10,5 +10,5 @@ num_cpus = "1.16.0"
 rand = "0.9.0"
 rayon = "1.10.0"
 
-# [profile.release]
-# debug = true
+[profile.release]
+debug = "line-tables-only"

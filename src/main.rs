@@ -40,6 +40,27 @@ fn main() -> Result<()> {
         mat: material_ground,
     }));
 
+    let material1 = Box::new(Dielectric::new(1.5));
+    world.add(Box::new(Sphere {
+        centre: vec3![0.0, 1.0, 0.0],
+        radius: 1.0,
+        mat: material1,
+    }));
+
+    let material2 = Box::new(Lambertian::new(vec3![0.4, 0.2, 0.1]));
+    world.add(Box::new(Sphere {
+        centre: vec3![-4.0, 1.0, 0.0],
+        radius: 1.0,
+        mat: material2,
+    }));
+
+    let material3 = Box::new(Metal::new(vec3![0.7, 0.6, 0.5], 0.0));
+    world.add(Box::new(Sphere {
+        centre: vec3![4.0, 1.0, 0.0],
+        radius: 1.0,
+        mat: material3,
+    }));
+
     let mut rng = SmallRng::from_os_rng();
     for a in -11..11 {
         for b in -11..11 {
@@ -72,27 +93,6 @@ fn main() -> Result<()> {
             };
         }
     }
-
-    let material1 = Box::new(Dielectric::new(1.5));
-    world.add(Box::new(Sphere {
-        centre: vec3![0.0, 1.0, 0.0],
-        radius: 1.0,
-        mat: material1,
-    }));
-
-    let material2 = Box::new(Lambertian::new(vec3![0.4, 0.2, 0.1]));
-    world.add(Box::new(Sphere {
-        centre: vec3![-4.0, 1.0, 0.0],
-        radius: 1.0,
-        mat: material2,
-    }));
-
-    let material3 = Box::new(Metal::new(vec3![0.7, 0.6, 0.5], 0.0));
-    world.add(Box::new(Sphere {
-        centre: vec3![4.0, 1.0, 0.0],
-        radius: 1.0,
-        mat: material3,
-    }));
 
     camera.render("output.png", &world)?;
     Ok(())

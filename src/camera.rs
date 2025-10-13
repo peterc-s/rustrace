@@ -1,5 +1,5 @@
 use std::sync::atomic::{AtomicUsize, Ordering};
-use std::sync::{Arc, Mutex};
+use std::sync::Mutex;
 
 use anyhow::{anyhow, Result};
 use image::RgbImage;
@@ -290,11 +290,8 @@ impl Camera {
     }
 
     pub fn render(self, output: &str, world: &dyn Hittable) -> Result<()> {
-        let img = Arc::new(Mutex::new(RgbImage::new(
-            self.image_width,
-            self.image_height,
-        )));
-        let lines_done = Arc::new(AtomicUsize::new(0));
+        let img = Mutex::new(RgbImage::new(self.image_width, self.image_height));
+        let lines_done = AtomicUsize::new(0);
 
         (0..self.image_height).into_par_iter().for_each(|j| {
             let mut rng = SmallRng::from_os_rng();

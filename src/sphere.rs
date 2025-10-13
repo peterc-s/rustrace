@@ -50,7 +50,7 @@ impl Hittable for Sphere {
         let p = r.at(root);
         let outward_norm = (p - self.centre) / self.radius;
         let norm = (p - self.centre) / self.radius;
-        let mat = &self.mat;
+        let mat = &(*self.mat);
 
         let mut rec = HitRecord {
             t,

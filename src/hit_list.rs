@@ -13,7 +13,7 @@ pub struct HittableList {
 #[allow(dead_code)]
 impl HittableList {
     pub fn clear(self) {
-        self;
+        drop(self);
     }
 
     pub fn add(&mut self, object: Box<dyn Hittable>) {
