@@ -3,7 +3,7 @@ Raytracer in Rust rougly following [Raytracing in One Weekend](https://raytracin
 
 ![](final.png)
 
-Rendered at 1000 samples per pixel, 1920x1080, in 13 minutes on an laptop (13th Gen i5-1350P, 16GB DDR5, powersave governor - unplugged!).
+Rendered at 1000 samples per pixel, 1920x1080, in 13 minutes on an laptop (13th Gen i5-1350P, 16GB DDR5 @ 4800 MT/s, powersave governor - unplugged!).
 
 ![](final_small.png)
 
