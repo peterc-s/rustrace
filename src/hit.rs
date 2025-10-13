@@ -1,7 +1,7 @@
 use core::fmt;
 
 use crate::{
-    bvh::Aabb,
+    aabb::Aabb,
     interval::Interval,
     material::Material,
     ray::Ray,

@@ -1,7 +1,7 @@
-use crate::bvh::Aabb;
-use crate::interval;
 use crate::{
+    aabb::Aabb,
     hit::{HitRecord, Hittable},
+    interval,
     interval::Interval,
     ray::Ray,
 };

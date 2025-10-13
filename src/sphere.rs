@@ -1,5 +1,5 @@
 use crate::{
-    bvh::Aabb,
+    aabb::Aabb,
     hit::{HitRecord, Hittable},
     interval,
     interval::Interval,

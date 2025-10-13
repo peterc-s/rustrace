@@ -8,11 +8,12 @@ use rand::{rngs::SmallRng, Rng, SeedableRng};
 use sphere::Sphere;
 use vec3::Vec3;
 
-use crate::bvh::SplitAxis;
+use crate::aabb::SplitAxis;
 
 #[global_allocator]
 static GLOBAL: MiMalloc = MiMalloc;
 
+mod aabb;
 mod bvh;
 mod camera;
 mod hit;
