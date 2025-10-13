@@ -37,6 +37,7 @@ impl Triangle {
 
 impl Hittable for Triangle {
     fn hit(&self, r: &Ray, _ray_t: Interval) -> Option<HitRecord<'_>> {
+        // https://en.wikipedia.org/wiki/M%C3%B6ller%E2%80%93Trumbore_intersection_algorithm
         let e1 = self.vertices[1] - self.vertices[0];
         let e2 = self.vertices[2] - self.vertices[0];
         let ray_cross_e2 = cross(&r.direction, &e2);
