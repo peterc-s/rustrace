@@ -11,7 +11,7 @@ use crate::{
 pub struct HitRecord<'a> {
     pub p: Vec3,
     pub norm: Vec3,
-    pub mat: &'a Box<dyn Material>,
+    pub mat: &'a dyn Material,
     pub t: f64,
     pub front_face: bool,
 }
