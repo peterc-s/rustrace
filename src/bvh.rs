@@ -46,6 +46,7 @@ impl Aabb {
         self.z.union(&other.z);
     }
 
+    // DEBUG: only used in BVHTree::verify()
     // pub fn surrounds(self, other: &Self) -> bool {
     //     self.x.contains_interval(&other.x)
     //         && self.y.contains_interval(&other.y)
@@ -117,11 +118,13 @@ impl Aabb {
 
         for (norm, offset, (idx1, idx2), range1, range2) in planes.iter() {
             if let Some(t) = plane_intersect(ray, norm, *offset) {
-                let intersect_point = (ray.direction * t) + ray.origin;
+                let intersect_point = ray.at(t);
 
+                // Check that intersection is within the face of the AABB
                 if range1.contains(intersect_point[*idx1])
                     && range2.contains(intersect_point[*idx2])
                 {
+                    // Update the intersection_t if current intersection is closer
                     intersection_t = match intersection_t {
                         Some(existing_t) if t < existing_t => Some(t),
                         None => Some(t),
@@ -131,6 +134,7 @@ impl Aabb {
             }
         }
 
+        // Reject negative t
         intersection_t.filter(|&t| t > 0.)
     }
 }
@@ -196,6 +200,7 @@ impl BVHTree {
         }
     }
 
+    // DEBUG: verify that AABBs surround their object's AABBs
     // pub fn verify(&self) -> bool {
     //     for object in &self.objects.objects {
     //         if !self.aabb.surrounds(&object.bound()) {

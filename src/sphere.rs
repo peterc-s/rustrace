@@ -62,6 +62,7 @@ impl Hittable for Sphere {
             front_face: false,
         };
 
+        // DEBUG: Check that ray intersects bound
         // assert!(self.bound().ray_hit(r).is_some());
 
         rec.set_face_norm(r, &outward_norm);
