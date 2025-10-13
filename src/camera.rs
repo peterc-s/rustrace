@@ -1,4 +1,3 @@
-use std::f64::INFINITY;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::{Arc, Mutex};
 
@@ -274,11 +273,11 @@ impl Defocus for Camera {
 
 impl Camera {
     fn ray_colour(r: &Ray, depth: u32, world: &dyn Hittable, rng: &mut SmallRng) -> Vec3 {
-        if depth <= 0 {
+        if depth == 0 {
             return vec3![0.0, 0.0, 0.0];
         }
 
-        if let Some(rec) = world.hit(r, interval![0.001, INFINITY]) {
+        if let Some(rec) = world.hit(r, interval![0.001, f64::INFINITY]) {
             if let Ok((scattered, attenuation)) = rec.mat.scatter(r, &rec, Some(rng)) {
                 return attenuation * Camera::ray_colour(&scattered, depth - 1, world, rng);
             }
