@@ -29,7 +29,7 @@ mod vec3;
 fn main() -> Result<()> {
     // Camera setup
     let camera = CameraBuilder::default()
-        .set_image_width(400)
+        .set_image_width(1280)
         .set_aspect_ratio(16.0 / 9.0)
         .set_max_depth(50)
         .set_anti_aliasing(camera::AntiAliasing::Random(500))
