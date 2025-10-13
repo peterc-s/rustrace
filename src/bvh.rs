@@ -235,79 +235,32 @@ impl Hittable for BVHTree {
         };
 
         let self_hit = self.objects.hit(r, ray_t);
-
-        fn compare_hits<'a>(
-            left_hit: Option<HitRecord<'a>>,
-            right_hit: Option<HitRecord<'a>>,
-        ) -> Option<HitRecord<'a>> {
-            match (left_hit, right_hit) {
-                (None, None) => None,
-                (None, Some(r)) => Some(r),
-                (Some(l), None) => Some(l),
-                (Some(l), Some(r)) => {
-                    if l.t < r.t {
-                        Some(l)
-                    } else {
-                        Some(r)
-                    }
-                }
-            }
-        }
-
         let subtree_hit = match (left_t, right_t) {
             (None, None) => None,
-            (None, Some(_)) => {
-                if let Some(node) = right {
-                    node.hit(r, ray_t)
-                } else {
-                    None
-                }
-            }
-            (Some(_), None) => {
-                if let Some(node) = left {
-                    node.hit(r, ray_t)
-                } else {
-                    None
-                }
-            }
+            (Some(_), None) => left?.hit(r, ray_t),
+            (None, Some(_)) => right?.hit(r, ray_t),
             (Some(l_t), Some(r_t)) => {
-                if l_t < r_t {
-                    if let Some(node) = left {
-                        match node.hit(r, ray_t) {
-                            Some(hit) => Some(hit),
-                            None => {
-                                if let Some(node) = right {
-                                    node.hit(r, ray_t)
-                                } else {
-                                    None
-                                }
-                            }
-                        }
-                    } else if let Some(node) = right {
-                        node.hit(r, ray_t)
-                    } else {
-                        None
-                    }
-                } else if let Some(node) = right {
-                    match node.hit(r, ray_t) {
-                        Some(hit) => Some(hit),
-                        None => {
-                            if let Some(node) = left {
-                                node.hit(r, ray_t)
-                            } else {
-                                None
-                            }
-                        }
-                    }
-                } else if let Some(node) = left {
-                    node.hit(r, ray_t)
+                let (first, second) = if l_t < r_t {
+                    (left, right)
                 } else {
-                    None
-                }
+                    (right, left)
+                };
+                first?.hit(r, ray_t).or_else(|| second?.hit(r, ray_t))
             }
         };
 
-        compare_hits(self_hit, subtree_hit)
+        match (self_hit, subtree_hit) {
+            (None, None) => None,
+            (None, Some(r)) => Some(r),
+            (Some(l), None) => Some(l),
+            (Some(l), Some(r)) => {
+                if l.t < r.t {
+                    Some(l)
+                } else {
+                    Some(r)
+                }
+            }
+        }
     }
 
     fn bound(&self) -> Aabb {
