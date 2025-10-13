@@ -25,13 +25,13 @@ impl SplitAxis {
 }
 
 #[derive(Debug, Clone, Copy)]
-pub struct AABB {
+pub struct Aabb {
     pub x: Interval,
     pub y: Interval,
     pub z: Interval,
 }
 
-impl AABB {
+impl Aabb {
     pub fn new() -> Self {
         Self {
             x: Interval::empty(),
@@ -54,7 +54,7 @@ impl AABB {
         self.x.contains(point.e[0]) && self.y.contains(point.e[1]) && self.z.contains(point.e[2])
     }
 
-    pub fn split(&self, axis: SplitAxis) -> (AABB, AABB) {
+    pub fn split(&self, axis: SplitAxis) -> (Aabb, Aabb) {
         let mut left = *self;
         let mut right = *self;
 
@@ -133,7 +133,7 @@ impl AABB {
 pub struct BVHTree {
     pub left: Option<Box<BVHTree>>,
     pub right: Option<Box<BVHTree>>,
-    pub aabb: AABB,
+    pub aabb: Aabb,
     pub objects: HittableList,
 }
 
@@ -229,23 +229,17 @@ impl Hittable for BVHTree {
                 if l_t < r_t {
                     if let Some(node) = left {
                         node.hit(r, ray_t)
-                    } else {
-                        if let Some(node) = right {
-                            node.hit(r, ray_t)
-                        } else {
-                            None
-                        }
-                    }
-                } else {
-                    if let Some(node) = right {
+                    } else if let Some(node) = right {
                         node.hit(r, ray_t)
                     } else {
-                        if let Some(node) = left {
-                            node.hit(r, ray_t)
-                        } else {
-                            None
-                        }
+                        None
                     }
+                } else if let Some(node) = right {
+                    node.hit(r, ray_t)
+                } else if let Some(node) = left {
+                    node.hit(r, ray_t)
+                } else {
+                    None
                 }
             }
         };
@@ -271,7 +265,7 @@ impl Hittable for BVHTree {
         compare_hits(self_hit, subtree_hit)
     }
 
-    fn bound(&self) -> AABB {
+    fn bound(&self) -> Aabb {
         self.aabb
     }
 }

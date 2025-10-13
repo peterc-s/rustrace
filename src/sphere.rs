@@ -1,5 +1,5 @@
 use crate::{
-    bvh::AABB,
+    bvh::Aabb,
     hit::{HitRecord, Hittable},
     interval,
     interval::Interval,
@@ -67,8 +67,8 @@ impl Hittable for Sphere {
         Some(rec)
     }
 
-    fn bound(&self) -> AABB {
-        AABB {
+    fn bound(&self) -> Aabb {
+        Aabb {
             x: interval![
                 self.centre.e[0] - self.radius,
                 self.centre.e[0] + self.radius
