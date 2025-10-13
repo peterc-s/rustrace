@@ -8,7 +8,7 @@ use rand::{rngs::SmallRng, Rng, SeedableRng};
 use sphere::Sphere;
 use vec3::Vec3;
 
-use crate::aabb::SplitAxis;
+use crate::{aabb::SplitAxis, triangle::Triangle};
 
 #[global_allocator]
 static GLOBAL: MiMalloc = MiMalloc;
@@ -22,6 +22,7 @@ mod interval;
 mod material;
 mod ray;
 mod sphere;
+mod triangle;
 mod utils;
 mod vec3;
 
@@ -53,7 +54,7 @@ fn main() -> Result<()> {
     hit_list.add(Box::new(Sphere {
         centre: vec3![0.0, 1.0, 0.0],
         radius: 1.0,
-        mat: material1,
+        mat: material1.clone(),
     }));
 
     let material2 = Box::new(Lambertian::new(vec3![0.4, 0.2, 0.1]));
@@ -62,6 +63,12 @@ fn main() -> Result<()> {
         radius: 1.0,
         mat: material2,
     }));
+
+    hit_list.add(Box::new(Triangle::new(
+        [vec3![7., 2., 0.], vec3![6., 1., 0.], vec3![7., 2., 1.]],
+        None,
+        material1,
+    )));
 
     let material3 = Box::new(Metal::new(vec3![0.7, 0.6, 0.5], 0.0));
     hit_list.add(Box::new(Sphere {

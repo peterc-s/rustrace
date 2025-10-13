@@ -4,7 +4,9 @@ Raytracer in Rust rougly following [Raytracing in One Weekend](https://raytracin
 ![](final.png)
 
 ## Features
-- Spheres only right now.
+- Geometry:
+    - Spheres
+    - Triangles
 - Materials:
     - Lambertian (diffuse),
     - Dielectric,
@@ -18,7 +20,9 @@ Raytracer in Rust rougly following [Raytracing in One Weekend](https://raytracin
 
 ## To-Do
 - [ ] Profile `par_iter` over pixels into a buffer against current method to see if line mutex locking and releasing is causing slow-downs
-- [ ] Other geometry (tri's and OBJ parsing).
+- [ ] Other geometry.
+    - [x] Triangles
+    - [ ] Triangular meshes from OBJs
 - [ ] Texturing.
 - [ ] Lighting.
 - [ ] Transforms.
