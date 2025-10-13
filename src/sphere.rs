@@ -62,6 +62,8 @@ impl Hittable for Sphere {
             front_face: false,
         };
 
+        // assert!(self.bound().ray_hit(r).is_some());
+
         rec.set_face_norm(r, &outward_norm);
 
         Some(rec)

@@ -103,6 +103,7 @@ fn main() -> Result<()> {
     }
 
     let world = BVHTree::from_hit_list(hit_list, SplitAxis::Y);
+    // assert!(world.verify());
 
     camera.render("output.png", &world)?;
     Ok(())

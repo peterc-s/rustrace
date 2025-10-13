@@ -46,8 +46,14 @@ impl Aabb {
         self.z.union(&other.z);
     }
 
+    pub fn surrounds(self, other: &Self) -> bool {
+        self.x.contains_interval(&other.x)
+            && self.y.contains_interval(&other.y)
+            && self.z.contains_interval(&other.z)
+    }
+
     pub fn contains(self, other: &Self) -> bool {
-        self.x.overlaps(&other.x) || self.y.overlaps(&other.y) || self.z.overlaps(&other.z)
+        self.x.overlaps(&other.x) && self.y.overlaps(&other.y) && self.z.overlaps(&other.z)
     }
 
     pub fn contains_point(self, point: Vec3) -> bool {
@@ -91,7 +97,7 @@ impl Aabb {
             let n_d = dot(norm, &ray.direction);
             if n_d != 0. {
                 let n_p = dot(norm, &ray.origin);
-                Some(-((n_p) + offset) / n_d)
+                Some((offset - n_p) / n_d)
             } else {
                 None
             }
@@ -113,8 +119,8 @@ impl Aabb {
             if let Some(t) = plane_intersect(ray, norm, *offset) {
                 let intersect_point = (ray.direction * t) + ray.origin;
 
-                if range1.surrounds(intersect_point.e[*idx1])
-                    && range2.surrounds(intersect_point.e[*idx2])
+                if range1.contains(intersect_point[*idx1])
+                    && range2.contains(intersect_point[*idx2])
                 {
                     intersection_t = match intersection_t {
                         Some(existing_t) if t < existing_t => Some(t),
@@ -125,7 +131,7 @@ impl Aabb {
             }
         }
 
-        intersection_t
+        intersection_t.filter(|&t| t > 0.)
     }
 }
 
@@ -170,13 +176,13 @@ impl BVHTree {
                 right: None,
             },
             (true, false) => Self {
-                aabb: right_aabb,
+                aabb,
                 objects: both,
                 left: None,
                 right: Some(Box::new(Self::from_hit_list(right, split_axis))),
             },
             (false, true) => Self {
-                aabb: left_aabb,
+                aabb,
                 objects: both,
                 left: Some(Box::new(Self::from_hit_list(left, split_axis))),
                 right: None,
@@ -188,6 +194,33 @@ impl BVHTree {
                 right: Some(Box::new(Self::from_hit_list(right, split_axis))),
             },
         }
+    }
+
+    pub fn verify(&self) -> bool {
+        for object in &self.objects.objects {
+            if !self.aabb.surrounds(&object.bound()) {
+                return false;
+            }
+        }
+
+        match &self.left {
+            Some(left) => {
+                if !Self::verify(left) {
+                    return false;
+                }
+            }
+            None => {}
+        }
+
+        match &self.right {
+            Some(right) => {
+                if !Self::verify(right) {
+                    return false;
+                }
+            }
+            None => {}
+        }
+        true
     }
 }
 
@@ -209,6 +242,24 @@ impl Hittable for BVHTree {
 
         let self_hit = self.objects.hit(r, ray_t);
 
+        fn compare_hits<'a>(
+            left_hit: Option<HitRecord<'a>>,
+            right_hit: Option<HitRecord<'a>>,
+        ) -> Option<HitRecord<'a>> {
+            match (left_hit, right_hit) {
+                (None, None) => None,
+                (None, Some(r)) => Some(r),
+                (Some(l), None) => Some(l),
+                (Some(l), Some(r)) => {
+                    if l.t < r.t {
+                        Some(l)
+                    } else {
+                        Some(r)
+                    }
+                }
+            }
+        }
+
         let subtree_hit = match (left_t, right_t) {
             (None, None) => None,
             (None, Some(_)) => {
@@ -228,39 +279,41 @@ impl Hittable for BVHTree {
             (Some(l_t), Some(r_t)) => {
                 if l_t < r_t {
                     if let Some(node) = left {
-                        node.hit(r, ray_t)
+                        match node.hit(r, ray_t) {
+                            Some(hit) => Some(hit),
+                            None => {
+                                if let Some(node) = right {
+                                    node.hit(r, ray_t)
+                                } else {
+                                    None
+                                }
+                            }
+                        }
                     } else if let Some(node) = right {
                         node.hit(r, ray_t)
                     } else {
                         None
                     }
-                } else if let Some(node) = right {
-                    node.hit(r, ray_t)
-                } else if let Some(node) = left {
-                    node.hit(r, ray_t)
                 } else {
-                    None
-                }
-            }
-        };
-
-        fn compare_hits<'a>(
-            left_hit: Option<HitRecord<'a>>,
-            right_hit: Option<HitRecord<'a>>,
-        ) -> Option<HitRecord<'a>> {
-            match (left_hit, right_hit) {
-                (None, None) => None,
-                (None, Some(r)) => Some(r),
-                (Some(l), None) => Some(l),
-                (Some(l), Some(r)) => {
-                    if l.t < r.t {
-                        Some(l)
+                    if let Some(node) = right {
+                        match node.hit(r, ray_t) {
+                            Some(hit) => Some(hit),
+                            None => {
+                                if let Some(node) = left {
+                                    node.hit(r, ray_t)
+                                } else {
+                                    None
+                                }
+                            }
+                        }
+                    } else if let Some(node) = left {
+                        node.hit(r, ray_t)
                     } else {
-                        Some(r)
+                        None
                     }
                 }
             }
-        }
+        };
 
         compare_hits(self_hit, subtree_hit)
     }

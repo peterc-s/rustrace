@@ -38,6 +38,10 @@ impl Interval {
         self.min <= x && x <= self.max
     }
 
+    pub fn contains_interval(self, other: &Self) -> bool {
+        self.contains(other.min) && self.contains(other.max)
+    }
+
     pub fn overlaps(self, other: &Self) -> bool {
         self.min <= other.max && other.min <= self.max
     }
