@@ -1,5 +1,3 @@
-use std::sync::Arc;
-
 use anyhow::Result;
 use camera::CameraBuilder;
 use hit_list::HittableList;
@@ -34,9 +32,9 @@ fn main() -> Result<()> {
 
     // Scene
     let mut world = HittableList::default();
-    let material_ground = Arc::new(Lambertian::new(vec3![0.8, 0.8, 0.0]));
+    let material_ground = Box::new(Lambertian::new(vec3![0.8, 0.8, 0.0]));
 
-    world.add(Arc::new(Sphere {
+    world.add(Box::new(Sphere {
         centre: vec3![0.0, -1000.0, 0.0],
         radius: 1000.0,
         mat: material_ground,
@@ -53,20 +51,20 @@ fn main() -> Result<()> {
             ];
 
             if (centre - vec3![4.0, 0.2, 0.0]).length() > 0.9 {
-                let mat: Arc<dyn Material> = match choose_mat {
+                let mat: Box<dyn Material> = match choose_mat {
                     c if (c < 0.8) => {
                         let albedo = Vec3::random(&mut rng);
-                        Arc::new(Lambertian::new(albedo))
+                        Box::new(Lambertian::new(albedo))
                     }
                     c if (c < 0.95) => {
                         let albedo = Vec3::random_in(0.5, 1.0, &mut rng);
                         let fuzz = rng.random_range(0.0..=0.5);
-                        Arc::new(Metal::new(albedo, fuzz))
+                        Box::new(Metal::new(albedo, fuzz))
                     }
-                    _ => Arc::new(Dielectric::new(1.5)),
+                    _ => Box::new(Dielectric::new(1.5)),
                 };
 
-                world.add(Arc::new(Sphere {
+                world.add(Box::new(Sphere {
                     centre,
                     radius: 0.2,
                     mat,
@@ -75,22 +73,22 @@ fn main() -> Result<()> {
         }
     }
 
-    let material1 = Arc::new(Dielectric::new(1.5));
-    world.add(Arc::new(Sphere {
+    let material1 = Box::new(Dielectric::new(1.5));
+    world.add(Box::new(Sphere {
         centre: vec3![0.0, 1.0, 0.0],
         radius: 1.0,
         mat: material1,
     }));
 
-    let material2 = Arc::new(Lambertian::new(vec3![0.4, 0.2, 0.1]));
-    world.add(Arc::new(Sphere {
+    let material2 = Box::new(Lambertian::new(vec3![0.4, 0.2, 0.1]));
+    world.add(Box::new(Sphere {
         centre: vec3![-4.0, 1.0, 0.0],
         radius: 1.0,
         mat: material2,
     }));
 
-    let material3 = Arc::new(Metal::new(vec3![0.7, 0.6, 0.5], 0.0));
-    world.add(Arc::new(Sphere {
+    let material3 = Box::new(Metal::new(vec3![0.7, 0.6, 0.5], 0.0));
+    world.add(Box::new(Sphere {
         centre: vec3![4.0, 1.0, 0.0],
         radius: 1.0,
         mat: material3,

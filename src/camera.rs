@@ -322,15 +322,16 @@ impl Camera {
 
             eprint!(
                 "\rLines: {}/{}",
-                lines_done.load(Ordering::SeqCst) + 1,
+                lines_done.load(Ordering::Relaxed) + 1,
                 self.image_height
             );
+
+            lines_done.fetch_add(1, Ordering::Relaxed);
+
             let mut img = img.lock().unwrap();
             for (i, pixel) in row.into_iter().enumerate() {
                 img.put_pixel(i as u32, j, pixel);
             }
-
-            lines_done.fetch_add(1, Ordering::SeqCst);
         });
 
         eprintln!("\nSaving...");

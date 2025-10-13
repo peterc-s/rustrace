@@ -4,26 +4,25 @@ use crate::{
     interval::Interval,
     ray::Ray,
 };
-use std::sync::Arc;
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Default)]
 pub struct HittableList {
-    pub objects: Vec<Arc<dyn Hittable>>,
+    pub objects: Vec<Box<dyn Hittable>>,
 }
 
 #[allow(dead_code)]
 impl HittableList {
-    pub fn clear(mut self) {
-        self.objects.clear();
+    pub fn clear(self) {
+        self.objects;
     }
 
-    pub fn add(&mut self, object: Arc<dyn Hittable>) {
+    pub fn add(&mut self, object: Box<dyn Hittable>) {
         self.objects.push(object);
     }
 }
 
 impl Hittable for HittableList {
-    fn hit(&self, r: &Ray, ray_t: Interval) -> Option<HitRecord> {
+    fn hit(&self, r: &Ray, ray_t: Interval) -> Option<HitRecord<'_>> {
         let mut out_rec: Option<HitRecord> = None;
         let mut closest_so_far = ray_t.max;
 

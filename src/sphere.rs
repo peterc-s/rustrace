@@ -1,5 +1,3 @@
-use std::sync::Arc;
-
 use crate::{
     hit::{HitRecord, Hittable},
     interval::Interval,
@@ -8,16 +6,16 @@ use crate::{
     vec3::{dot, Vec3},
 };
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct Sphere {
     pub centre: Vec3,
     pub radius: f64,
-    pub mat: Arc<dyn Material>,
+    pub mat: Box<dyn Material>,
 }
 
 #[allow(dead_code)]
 impl Sphere {
-    fn new(centre: Vec3, radius: f64, mat: Arc<dyn Material>) -> Sphere {
+    fn new(centre: Vec3, radius: f64, mat: Box<dyn Material>) -> Sphere {
         Sphere {
             centre,
             radius: radius.max(0.0),
@@ -27,7 +25,7 @@ impl Sphere {
 }
 
 impl Hittable for Sphere {
-    fn hit(&self, r: &Ray, ray_t: Interval) -> Option<HitRecord> {
+    fn hit(&self, r: &Ray, ray_t: Interval) -> Option<HitRecord<'_>> {
         let oc = self.centre - r.origin;
         let a = r.direction.length_squared();
         let h = dot(&r.direction, &oc);
@@ -52,7 +50,7 @@ impl Hittable for Sphere {
         let p = r.at(root);
         let outward_norm = (p - self.centre) / self.radius;
         let norm = (p - self.centre) / self.radius;
-        let mat = self.mat.clone();
+        let mat = &self.mat;
 
         let mut rec = HitRecord {
             t,
