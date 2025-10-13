@@ -1,10 +1,12 @@
-use std::ops::{Add, AddAssign, Div, DivAssign, Index, IndexMut, Mul, MulAssign, Neg, Sub, SubAssign};
+use std::ops::{
+    Add, AddAssign, Div, DivAssign, Index, IndexMut, Mul, MulAssign, Neg, Sub, SubAssign,
+};
 
 use image::Rgb;
 
+use crate::interval;
 use interval::Interval;
 use rand::{rngs::SmallRng, Rng};
-use crate::interval;
 
 #[derive(Clone, Copy, Debug, Default)]
 pub struct Vec3 {
@@ -15,21 +17,19 @@ pub struct Vec3 {
 macro_rules! vec3 {
     ($a:expr, $b:expr, $c:expr) => {
         Vec3 { e: [$a, $b, $c] }
-    }
+    };
 }
 
 #[allow(dead_code)]
 impl Vec3 {
     pub fn new(a: f64, b: f64, c: f64) -> Self {
-        Vec3 {
-            e: [a, b, c]
-        }
+        Vec3 { e: [a, b, c] }
     }
 
     pub fn length_squared(&self) -> f64 {
-        let x: f64 = self[0].into();
-        let y: f64 = self[1].into();
-        let z: f64 = self[2].into();
+        let x: f64 = self[0];
+        let y: f64 = self[1];
+        let z: f64 = self[2];
         x * x + y * y + z * z
     }
 
@@ -54,17 +54,23 @@ impl Vec3 {
 
     pub fn near_zero(self) -> bool {
         let eps = 1e-8;
-        (self[0].abs() < eps) &&
-        (self[1].abs() < eps) &&
-        (self[2].abs() < eps)
+        (self[0].abs() < eps) && (self[1].abs() < eps) && (self[2].abs() < eps)
     }
 
     pub fn random(rng: &mut SmallRng) -> Self {
-        vec3![rng.random_range(0.0..=1.0), rng.random_range(0.0..=1.0), rng.random_range(0.0..=1.0)]
+        vec3![
+            rng.random_range(0.0..=1.0),
+            rng.random_range(0.0..=1.0),
+            rng.random_range(0.0..=1.0)
+        ]
     }
 
     pub fn random_in(min: f64, max: f64, rng: &mut SmallRng) -> Self {
-        vec3![rng.random_range(min..=max), rng.random_range(min..=max), rng.random_range(min..=max)]
+        vec3![
+            rng.random_range(min..=max),
+            rng.random_range(min..=max),
+            rng.random_range(min..=max)
+        ]
     }
 
     pub fn random_unit(rng: &mut SmallRng) -> Self {
@@ -88,7 +94,11 @@ impl Vec3 {
 
     pub fn random_in_unit_disc(rng: &mut SmallRng) -> Self {
         loop {
-            let p = vec3![rng.random_range(-1.0..=1.0), rng.random_range(-1.0..=1.0), 0.0];
+            let p = vec3![
+                rng.random_range(-1.0..=1.0),
+                rng.random_range(-1.0..=1.0),
+                0.0
+            ];
             if p.length_squared() < 1.0 {
                 return p;
             }
@@ -103,13 +113,10 @@ impl Vec3 {
             (intensity.clamp(linear_to_gamma(self[2])) * 256.0) as u8,
         ])
     }
-
 }
 
 pub fn dot(u: &Vec3, v: &Vec3) -> f64 {
-    u[0] * v[0] +
-    u[1] * v[1] +
-    u[2] * v[2]
+    u[0] * v[0] + u[1] * v[1] + u[2] * v[2]
 }
 
 pub fn cross(u: &Vec3, v: &Vec3) -> Vec3 {
@@ -132,21 +139,13 @@ impl Add for Vec3 {
     type Output = Self;
 
     fn add(self, other: Self) -> Self {
-        vec3![
-            self[0] + other[0],
-            self[1] + other[1],
-            self[2] + other[2]
-        ]
+        vec3![self[0] + other[0], self[1] + other[1], self[2] + other[2]]
     }
 }
 
 impl AddAssign for Vec3 {
     fn add_assign(&mut self, other: Self) {
-        *self = vec3![
-            self[0] + other[0],
-            self[1] + other[1],
-            self[2] + other[2]
-        ]
+        *self = vec3![self[0] + other[0], self[1] + other[1], self[2] + other[2]]
     }
 }
 
@@ -154,21 +153,13 @@ impl Sub for Vec3 {
     type Output = Self;
 
     fn sub(self, other: Self) -> Self {
-        vec3![
-            self[0] - other[0],
-            self[1] - other[1],
-            self[2] - other[2]
-        ]
+        vec3![self[0] - other[0], self[1] - other[1], self[2] - other[2]]
     }
 }
 
 impl SubAssign for Vec3 {
     fn sub_assign(&mut self, other: Self) {
-        *self = vec3![
-            self[0] - other[0],
-            self[1] - other[1],
-            self[2] - other[2]
-        ]
+        *self = vec3![self[0] - other[0], self[1] - other[1], self[2] - other[2]]
     }
 }
 
@@ -176,16 +167,13 @@ impl Mul for Vec3 {
     type Output = Self;
 
     fn mul(self, rhs: Self) -> Self::Output {
-        vec3![
-            self[0] * rhs[0],
-            self[1] * rhs[1],
-            self[2] * rhs[2]
-        ]
+        vec3![self[0] * rhs[0], self[1] * rhs[1], self[2] * rhs[2]]
     }
 }
 
-impl <K> Mul<K> for Vec3
-where K: Mul + Into<f64> + Copy
+impl<K> Mul<K> for Vec3
+where
+    K: Mul + Into<f64> + Copy,
 {
     type Output = Self;
 
@@ -198,8 +186,9 @@ where K: Mul + Into<f64> + Copy
     }
 }
 
-impl <K> MulAssign<K> for Vec3
-where K: Mul + Into<f64> + Copy
+impl<K> MulAssign<K> for Vec3
+where
+    K: Mul + Into<f64> + Copy,
 {
     fn mul_assign(&mut self, scalar: K) {
         *self = vec3![
@@ -210,8 +199,9 @@ where K: Mul + Into<f64> + Copy
     }
 }
 
-impl <K> Div<K> for Vec3
-where K: Mul + Into<f64> + Copy
+impl<K> Div<K> for Vec3
+where
+    K: Mul + Into<f64> + Copy,
 {
     type Output = Self;
 
@@ -224,8 +214,9 @@ where K: Mul + Into<f64> + Copy
     }
 }
 
-impl <K> DivAssign<K> for Vec3
-where K: Mul + Into<f64> + Copy
+impl<K> DivAssign<K> for Vec3
+where
+    K: Mul + Into<f64> + Copy,
 {
     fn div_assign(&mut self, scalar: K) {
         *self = vec3![
@@ -240,11 +231,7 @@ impl Neg for Vec3 {
     type Output = Self;
 
     fn neg(self) -> Self {
-        vec3![
-            -self[0],
-            -self[1],
-            -self[2]
-        ]
+        vec3![-self[0], -self[1], -self[2]]
     }
 }
 

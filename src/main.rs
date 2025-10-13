@@ -8,20 +8,20 @@ use rand::{rngs::SmallRng, Rng, SeedableRng};
 use sphere::Sphere;
 use vec3::Vec3;
 
-mod vec3;
-mod ray;
-mod sphere;
+mod camera;
 mod hit;
 mod hit_list;
 mod interval;
-mod camera;
 mod material;
+mod ray;
+mod sphere;
 mod utils;
+mod vec3;
 
 fn main() -> Result<()> {
     // Camera setup
     let camera = CameraBuilder::default()
-        .set_image_width(1920)
+        .set_image_width(400)
         .set_aspect_ratio(16.0 / 9.0)
         .set_max_depth(50)
         .set_anti_aliasing(camera::AntiAliasing::Random(500))
@@ -34,19 +34,13 @@ fn main() -> Result<()> {
 
     // Scene
     let mut world = HittableList::default();
-    let material_ground = Arc::new(
-        Lambertian::new(
-            vec3![0.8, 0.8, 0.0]
-        )    
-    );
+    let material_ground = Arc::new(Lambertian::new(vec3![0.8, 0.8, 0.0]));
 
-    world.add(
-        Arc::new(Sphere {
-            centre: vec3![0.0, -1000.0, 0.0],
-            radius: 1000.0,
-            mat: material_ground,
-        })
-    );
+    world.add(Arc::new(Sphere {
+        centre: vec3![0.0, -1000.0, 0.0],
+        radius: 1000.0,
+        mat: material_ground,
+    }));
 
     let mut rng = SmallRng::from_os_rng();
     for a in -11..11 {
@@ -69,59 +63,38 @@ fn main() -> Result<()> {
                         let fuzz = rng.random_range(0.0..=0.5);
                         Arc::new(Metal::new(albedo, fuzz))
                     }
-                    _ => {
-                        Arc::new(Dielectric::new(1.5))
-                    }
+                    _ => Arc::new(Dielectric::new(1.5)),
                 };
 
-                world.add(
-                    Arc::new(Sphere {
-                        centre,
-                        radius: 0.2,
-                        mat,
-                    })
-                );
+                world.add(Arc::new(Sphere {
+                    centre,
+                    radius: 0.2,
+                    mat,
+                }));
             };
         }
     }
 
-    let material1 = Arc::new(
-        Dielectric::new(1.5)    
-    );
-    world.add(
-        Arc::new(Sphere {
-            centre: vec3![0.0, 1.0, 0.0],
-            radius: 1.0,
-            mat: material1,
-        })
-    );
+    let material1 = Arc::new(Dielectric::new(1.5));
+    world.add(Arc::new(Sphere {
+        centre: vec3![0.0, 1.0, 0.0],
+        radius: 1.0,
+        mat: material1,
+    }));
 
-    let material2 = Arc::new(
-        Lambertian::new(
-            vec3![0.4, 0.2, 0.1]
-        )
-    );
-    world.add(
-        Arc::new(Sphere {
-            centre: vec3![-4.0, 1.0, 0.0],
-            radius: 1.0,
-            mat: material2,
-        })
-    );
+    let material2 = Arc::new(Lambertian::new(vec3![0.4, 0.2, 0.1]));
+    world.add(Arc::new(Sphere {
+        centre: vec3![-4.0, 1.0, 0.0],
+        radius: 1.0,
+        mat: material2,
+    }));
 
-    let material3 = Arc::new(
-        Metal::new(
-            vec3![0.7, 0.6, 0.5],
-            0.0
-        )
-    );
-    world.add(
-        Arc::new(Sphere {
-            centre: vec3![4.0, 1.0, 0.0],
-            radius: 1.0,
-            mat: material3,
-        })
-    );
+    let material3 = Arc::new(Metal::new(vec3![0.7, 0.6, 0.5], 0.0));
+    world.add(Arc::new(Sphere {
+        centre: vec3![4.0, 1.0, 0.0],
+        radius: 1.0,
+        mat: material3,
+    }));
 
     camera.render("output.png", &world)?;
     Ok(())

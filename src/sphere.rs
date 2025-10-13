@@ -1,6 +1,12 @@
 use std::sync::Arc;
 
-use crate::{hit::{HitRecord, Hittable}, interval::Interval, material::Material, ray::Ray, vec3::{dot, Vec3}};
+use crate::{
+    hit::{HitRecord, Hittable},
+    interval::Interval,
+    material::Material,
+    ray::Ray,
+    vec3::{dot, Vec3},
+};
 
 #[derive(Debug, Clone)]
 pub struct Sphere {
@@ -17,7 +23,7 @@ impl Sphere {
             radius: radius.max(0.0),
             mat,
         }
-    } 
+    }
 }
 
 impl Hittable for Sphere {

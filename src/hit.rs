@@ -1,7 +1,12 @@
 use core::fmt;
 use std::sync::Arc;
 
-use crate::{interval::Interval, ray::Ray, vec3::{dot, Vec3}, material::Material};
+use crate::{
+    interval::Interval,
+    material::Material,
+    ray::Ray,
+    vec3::{dot, Vec3},
+};
 
 #[derive(Debug, Clone)]
 pub struct HitRecord {
@@ -15,7 +20,11 @@ pub struct HitRecord {
 impl HitRecord {
     pub fn set_face_norm(&mut self, r: &Ray, outward_norm: &Vec3) {
         self.front_face = dot(&r.direction, outward_norm) < 0.0;
-        self.norm = if self.front_face { *outward_norm } else { -*outward_norm }
+        self.norm = if self.front_face {
+            *outward_norm
+        } else {
+            -*outward_norm
+        }
     }
 }
 

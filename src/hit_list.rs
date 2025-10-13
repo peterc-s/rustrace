@@ -1,5 +1,9 @@
 use crate::interval;
-use crate::{hit::{HitRecord, Hittable}, interval::Interval, ray::Ray};
+use crate::{
+    hit::{HitRecord, Hittable},
+    interval::Interval,
+    ray::Ray,
+};
 use std::sync::Arc;
 
 #[derive(Debug, Clone, Default)]
@@ -29,7 +33,7 @@ impl Hittable for HittableList {
                 out_rec = Some(rec);
             }
         }
-        
+
         out_rec
     }
 }

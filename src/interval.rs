@@ -31,7 +31,7 @@ impl Interval {
     }
 
     pub fn size(self) -> f64 {
-        self.max - self.min 
+        self.max - self.min
     }
 
     pub fn contains(self, x: f64) -> bool {
@@ -43,8 +43,12 @@ impl Interval {
     }
 
     pub fn clamp(self, x: f64) -> f64 {
-        if x < self.min { return self.min };
-        if x > self.max { return self.max };
+        if x < self.min {
+            return self.min;
+        };
+        if x > self.max {
+            return self.max;
+        };
         x
     }
 }

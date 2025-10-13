@@ -2,18 +2,18 @@ use std::f64::INFINITY;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::{Arc, Mutex};
 
+use anyhow::{anyhow, Result};
 use image::RgbImage;
-use anyhow::{Result, anyhow};
-use rand::{rngs::SmallRng, Rng};
 use rand::SeedableRng;
+use rand::{rngs::SmallRng, Rng};
 use rayon::iter::{IntoParallelIterator, ParallelIterator};
 
 use crate::hit::Hittable;
+use crate::interval::Interval;
 use crate::ray::Ray;
 use crate::utils::deg_to_rad;
 use crate::vec3::{cross, Vec3};
-use crate::interval::Interval;
-use crate::{interval, vec3, ray};
+use crate::{interval, ray, vec3};
 
 #[derive(Debug, Clone, Copy)]
 pub enum AntiAliasing {
@@ -90,38 +90,23 @@ impl CameraBuilder {
     }
 
     pub fn set_max_depth(self, max_depth: u32) -> CameraBuilder {
-        CameraBuilder {
-            max_depth,
-            ..self
-        }
+        CameraBuilder { max_depth, ..self }
     }
 
     pub fn set_vfov(self, vfov: u16) -> CameraBuilder {
-        CameraBuilder {
-            vfov,
-            ..self
-        }
+        CameraBuilder { vfov, ..self }
     }
 
     pub fn set_look_from(self, look_from: Vec3) -> CameraBuilder {
-        CameraBuilder {
-            look_from,
-            ..self
-        }
+        CameraBuilder { look_from, ..self }
     }
 
     pub fn set_look_at(self, look_at: Vec3) -> CameraBuilder {
-        CameraBuilder {
-            look_at,
-            ..self
-        }
+        CameraBuilder { look_at, ..self }
     }
 
     pub fn set_v_up(self, v_up: Vec3) -> CameraBuilder {
-        CameraBuilder {
-            v_up,
-            ..self
-        }
+        CameraBuilder { v_up, ..self }
     }
 
     pub fn set_defocus_angle(self, defocus_angle: f64) -> CameraBuilder {
@@ -132,10 +117,7 @@ impl CameraBuilder {
     }
 
     pub fn set_focus_dist(self, focus_dist: f64) -> CameraBuilder {
-        CameraBuilder {
-            focus_dist,
-            ..self
-        }
+        CameraBuilder { focus_dist, ..self }
     }
 
     pub fn build(self) -> Camera {
@@ -143,16 +125,12 @@ impl CameraBuilder {
         image_height = if image_height < 1 { 1 } else { image_height };
 
         let samples_scale = match self.anti_aliasing {
-            AntiAliasing::Grid(size) => {
-                1.0 / (size.pow(2) as f64)
-            },
-            AntiAliasing::Random(number) => {
-                1.0 / (number as f64)
-            }
+            AntiAliasing::Grid(size) => 1.0 / (size.pow(2) as f64),
+            AntiAliasing::Random(number) => 1.0 / (number as f64),
         };
 
         let centre = self.look_from;
-        
+
         let theta = deg_to_rad(self.vfov as f64);
         let h = (theta / 2.0).tan();
         let viewport_height = 2.0 * h * self.focus_dist;
@@ -168,10 +146,7 @@ impl CameraBuilder {
         let pixel_delta_u = viewport_u / self.image_width;
         let pixel_delta_v = viewport_v / image_height;
 
-        let viewport_upper_left = centre
-                                - (w * self.focus_dist)
-                                - viewport_u / 2
-                                - viewport_v / 2;
+        let viewport_upper_left = centre - (w * self.focus_dist) - viewport_u / 2 - viewport_v / 2;
 
         let pixel00_loc = viewport_upper_left + (pixel_delta_u + pixel_delta_v) * 0.5;
 
@@ -224,25 +199,27 @@ impl AntiAliasingGrid for Camera {
     fn sample_grid(self, sample: u16) -> Result<Vec3> {
         if let AntiAliasing::Grid(size) = self.anti_aliasing {
             let grid_size = size as f64;
-            return Ok(vec3![
-                0.5 - (sample % size as u16) as f64 / (grid_size - 1.0),
-                0.5 - (sample / size as u16) as f64 / (grid_size - 1.0),
+            Ok(vec3![
+                0.5 - (sample % size) as f64 / (grid_size - 1.0),
+                0.5 - (sample / size) as f64 / (grid_size - 1.0),
                 0.0
             ])
         } else {
-            Err(anyhow!("Sample grid called when AntiAliasing mode is not Grid."))
+            Err(anyhow!(
+                "Sample grid called when AntiAliasing mode is not Grid."
+            ))
         }
     }
 
     fn get_ray_grid(self, i: u32, j: u32, sample: u16, rng: &mut SmallRng) -> Result<Ray> {
         let offset = self.sample_grid(sample)?;
         let pixel_sample = self.pixel00_loc
-                         + (self.pixel_delta_u * (i as f64 + offset[0]))
-                         + (self.pixel_delta_v * (j as f64 + offset[1]));
-        
+            + (self.pixel_delta_u * (i as f64 + offset[0]))
+            + (self.pixel_delta_v * (j as f64 + offset[1]));
+
         let ray_origin = if self.defocus_angle <= 0.0 {
-            self.centre 
-        } else { 
+            self.centre
+        } else {
             self.defocus_disc_sample(rng)
         };
 
@@ -256,7 +233,11 @@ impl AntiAliasingRandom for Camera {
     fn sample_random(self, rng: &mut SmallRng) -> Result<Vec3> {
         match self.anti_aliasing {
             AntiAliasing::Random(_) => {}
-            _ => { return Err(anyhow!("Sample random called when AntiAliasing mode is not Random.")) }
+            _ => {
+                return Err(anyhow!(
+                    "Sample random called when AntiAliasing mode is not Random."
+                ))
+            }
         }
 
         Ok(vec3![
@@ -269,12 +250,12 @@ impl AntiAliasingRandom for Camera {
     fn get_ray_random(self, i: u32, j: u32, rng: &mut SmallRng) -> Result<Ray> {
         let offset = self.sample_random(rng)?;
         let pixel_sample = self.pixel00_loc
-                         + (self.pixel_delta_u * (i as f64 + offset[0]))
-                         + (self.pixel_delta_v * (j as f64 + offset[1]));
+            + (self.pixel_delta_u * (i as f64 + offset[0]))
+            + (self.pixel_delta_v * (j as f64 + offset[1]));
 
         let ray_origin = if self.defocus_angle <= 0.0 {
-            self.centre 
-        } else { 
+            self.centre
+        } else {
             self.defocus_disc_sample(rng)
         };
 
@@ -310,7 +291,10 @@ impl Camera {
     }
 
     pub fn render(self, output: &str, world: &dyn Hittable) -> Result<()> {
-        let img = Arc::new(Mutex::new(RgbImage::new(self.image_width, self.image_height)));
+        let img = Arc::new(Mutex::new(RgbImage::new(
+            self.image_width,
+            self.image_height,
+        )));
         let lines_done = Arc::new(AtomicUsize::new(0));
 
         (0..self.image_height).into_par_iter().for_each(|j| {
@@ -321,11 +305,11 @@ impl Camera {
 
                 match self.anti_aliasing {
                     AntiAliasing::Grid(size) => {
-                        for sample in 0..size.pow(2) as u16 {
+                        for sample in 0..size.pow(2) {
                             let r = self.get_ray_grid(i, j, sample, &mut rng).unwrap();
                             pixel_colour += Camera::ray_colour(&r, self.max_depth, world, &mut rng);
                         }
-                    },
+                    }
                     AntiAliasing::Random(number) => {
                         for _ in 0..number {
                             let r = self.get_ray_random(i, j, &mut rng).unwrap();
@@ -333,16 +317,20 @@ impl Camera {
                         }
                     }
                 }
-                
+
                 row.push((pixel_colour * self.samples_scale).to_rgb());
             }
-            
-            eprint!("\rLines: {}/{}", lines_done.load(Ordering::SeqCst) + 1, self.image_height);
+
+            eprint!(
+                "\rLines: {}/{}",
+                lines_done.load(Ordering::SeqCst) + 1,
+                self.image_height
+            );
             let mut img = img.lock().unwrap();
             for (i, pixel) in row.into_iter().enumerate() {
                 img.put_pixel(i as u32, j, pixel);
             }
-            
+
             lines_done.fetch_add(1, Ordering::SeqCst);
         });
 
@@ -351,7 +339,7 @@ impl Camera {
             let img = img.lock().unwrap();
             img.save(output)?;
         }
-        eprintln!("Saved to {}!", output);
+        eprintln!("Saved to {output}!");
 
         Ok(())
     }
