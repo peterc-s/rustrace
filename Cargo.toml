@@ -6,9 +6,10 @@ edition = "2021"
 [dependencies]
 anyhow = "1.0.95"
 image = "0.25.5"
+mimalloc = "0.1.48"
 num_cpus = "1.16.0"
 rand = "0.9.0"
 rayon = "1.10.0"
 
-[profile.release]
-debug = "line-tables-only"
+# [profile.release]
+# debug = "line-tables-only"

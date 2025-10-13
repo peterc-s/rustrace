@@ -1,3 +1,4 @@
+use crate::bvh::AABB;
 use crate::interval;
 use crate::{
     hit::{HitRecord, Hittable},
@@ -19,6 +20,14 @@ impl HittableList {
     pub fn add(&mut self, object: Box<dyn Hittable>) {
         self.objects.push(object);
     }
+
+    pub fn new() -> Self {
+        Self { objects: vec![] }
+    }
+
+    pub fn combine(&mut self, mut other: Self) {
+        self.objects.append(&mut other.objects);
+    }
 }
 
 impl Hittable for HittableList {
@@ -34,5 +43,13 @@ impl Hittable for HittableList {
         }
 
         out_rec
+    }
+
+    fn bound(&self) -> AABB {
+        let mut aabb = AABB::new();
+        for object in &self.objects {
+            aabb.union(&object.bound());
+        }
+        aabb
     }
 }

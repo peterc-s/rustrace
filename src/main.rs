@@ -1,11 +1,19 @@
 use anyhow::Result;
+use bvh::BVHTree;
 use camera::CameraBuilder;
 use hit_list::HittableList;
 use material::{Dielectric, Lambertian, Material, Metal};
+use mimalloc::MiMalloc;
 use rand::{rngs::SmallRng, Rng, SeedableRng};
 use sphere::Sphere;
 use vec3::Vec3;
 
+use crate::bvh::SplitAxis;
+
+#[global_allocator]
+static GLOBAL: MiMalloc = MiMalloc;
+
+mod bvh;
 mod camera;
 mod hit;
 mod hit_list;
@@ -31,31 +39,31 @@ fn main() -> Result<()> {
         .build();
 
     // Scene
-    let mut world = HittableList::default();
+    let mut hit_list = HittableList::default();
     let material_ground = Box::new(Lambertian::new(vec3![0.8, 0.8, 0.0]));
 
-    world.add(Box::new(Sphere {
+    hit_list.add(Box::new(Sphere {
         centre: vec3![0.0, -1000.0, 0.0],
         radius: 1000.0,
         mat: material_ground,
     }));
 
     let material1 = Box::new(Dielectric::new(1.5));
-    world.add(Box::new(Sphere {
+    hit_list.add(Box::new(Sphere {
         centre: vec3![0.0, 1.0, 0.0],
         radius: 1.0,
         mat: material1,
     }));
 
     let material2 = Box::new(Lambertian::new(vec3![0.4, 0.2, 0.1]));
-    world.add(Box::new(Sphere {
+    hit_list.add(Box::new(Sphere {
         centre: vec3![-4.0, 1.0, 0.0],
         radius: 1.0,
         mat: material2,
     }));
 
     let material3 = Box::new(Metal::new(vec3![0.7, 0.6, 0.5], 0.0));
-    world.add(Box::new(Sphere {
+    hit_list.add(Box::new(Sphere {
         centre: vec3![4.0, 1.0, 0.0],
         radius: 1.0,
         mat: material3,
@@ -85,7 +93,7 @@ fn main() -> Result<()> {
                     _ => Box::new(Dielectric::new(1.5)),
                 };
 
-                world.add(Box::new(Sphere {
+                hit_list.add(Box::new(Sphere {
                     centre,
                     radius: 0.2,
                     mat,
@@ -93,6 +101,8 @@ fn main() -> Result<()> {
             };
         }
     }
+
+    let world = BVHTree::from_hit_list(hit_list, SplitAxis::Y);
 
     camera.render("output.png", &world)?;
     Ok(())

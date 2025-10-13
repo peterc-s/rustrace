@@ -1,5 +1,7 @@
 use crate::{
+    bvh::AABB,
     hit::{HitRecord, Hittable},
+    interval,
     interval::Interval,
     material::Material,
     ray::Ray,
@@ -63,5 +65,22 @@ impl Hittable for Sphere {
         rec.set_face_norm(r, &outward_norm);
 
         Some(rec)
+    }
+
+    fn bound(&self) -> AABB {
+        AABB {
+            x: interval![
+                self.centre.e[0] - self.radius,
+                self.centre.e[0] + self.radius
+            ],
+            y: interval![
+                self.centre.e[1] - self.radius,
+                self.centre.e[1] + self.radius
+            ],
+            z: interval![
+                self.centre.e[2] - self.radius,
+                self.centre.e[2] + self.radius
+            ],
+        }
     }
 }

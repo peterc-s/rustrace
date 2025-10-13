@@ -1,6 +1,7 @@
 use core::fmt;
 
 use crate::{
+    bvh::AABB,
     interval::Interval,
     material::Material,
     ray::Ray,
@@ -29,4 +30,6 @@ impl HitRecord<'_> {
 
 pub trait Hittable: fmt::Debug + Sync + Send {
     fn hit(&self, r: &Ray, ray_t: Interval) -> Option<HitRecord<'_>>;
+
+    fn bound(&self) -> AABB;
 }

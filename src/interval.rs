@@ -38,6 +38,10 @@ impl Interval {
         self.min <= x && x <= self.max
     }
 
+    pub fn overlaps(self, other: &Self) -> bool {
+        self.min <= other.max && other.min <= self.max
+    }
+
     pub fn surrounds(self, x: f64) -> bool {
         self.min < x && x < self.max
     }
@@ -50,5 +54,14 @@ impl Interval {
             return self.max;
         };
         x
+    }
+
+    pub fn union(&mut self, other: &Self) {
+        self.min = f64::min(self.min, other.min);
+        self.max = f64::max(self.max, other.max);
+    }
+
+    pub fn mid(self) -> f64 {
+        f64::midpoint(self.min, self.max)
     }
 }
