@@ -46,11 +46,11 @@ impl Aabb {
         self.z.union(&other.z);
     }
 
-    pub fn surrounds(self, other: &Self) -> bool {
-        self.x.contains_interval(&other.x)
-            && self.y.contains_interval(&other.y)
-            && self.z.contains_interval(&other.z)
-    }
+    // pub fn surrounds(self, other: &Self) -> bool {
+    //     self.x.contains_interval(&other.x)
+    //         && self.y.contains_interval(&other.y)
+    //         && self.z.contains_interval(&other.z)
+    // }
 
     pub fn contains(self, other: &Self) -> bool {
         self.x.overlaps(&other.x) && self.y.overlaps(&other.y) && self.z.overlaps(&other.z)
@@ -196,32 +196,26 @@ impl BVHTree {
         }
     }
 
-    pub fn verify(&self) -> bool {
-        for object in &self.objects.objects {
-            if !self.aabb.surrounds(&object.bound()) {
-                return false;
-            }
-        }
-
-        match &self.left {
-            Some(left) => {
-                if !Self::verify(left) {
-                    return false;
-                }
-            }
-            None => {}
-        }
-
-        match &self.right {
-            Some(right) => {
-                if !Self::verify(right) {
-                    return false;
-                }
-            }
-            None => {}
-        }
-        true
-    }
+    // pub fn verify(&self) -> bool {
+    //     for object in &self.objects.objects {
+    //         if !self.aabb.surrounds(&object.bound()) {
+    //             return false;
+    //         }
+    //     }
+    //
+    //     if let Some(left) = &self.left {
+    //         if !Self::verify(left) {
+    //             return false;
+    //         }
+    //     }
+    //
+    //     if let Some(right) = &self.right {
+    //         if !Self::verify(right) {
+    //             return false;
+    //         }
+    //     }
+    //     true
+    // }
 }
 
 impl Hittable for BVHTree {
@@ -294,23 +288,21 @@ impl Hittable for BVHTree {
                     } else {
                         None
                     }
-                } else {
-                    if let Some(node) = right {
-                        match node.hit(r, ray_t) {
-                            Some(hit) => Some(hit),
-                            None => {
-                                if let Some(node) = left {
-                                    node.hit(r, ray_t)
-                                } else {
-                                    None
-                                }
+                } else if let Some(node) = right {
+                    match node.hit(r, ray_t) {
+                        Some(hit) => Some(hit),
+                        None => {
+                            if let Some(node) = left {
+                                node.hit(r, ray_t)
+                            } else {
+                                None
                             }
                         }
-                    } else if let Some(node) = left {
-                        node.hit(r, ray_t)
-                    } else {
-                        None
                     }
+                } else if let Some(node) = left {
+                    node.hit(r, ray_t)
+                } else {
+                    None
                 }
             }
         };
