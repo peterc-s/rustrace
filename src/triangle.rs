@@ -50,7 +50,7 @@ impl Hittable for Triangle {
         let inv_det = 1. / det;
         let s = r.origin - self.vertices[0];
         let u = dot(&s, &ray_cross_e2) * inv_det;
-        if u < 0. || u > 1. {
+        if !(0. ..=1.).contains(&u) {
             return None;
         }
 
