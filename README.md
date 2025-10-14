@@ -25,7 +25,6 @@ Rendered at 500 samples per pixel, 1280x720, in just under 3 minutes (same lapto
 - BVH tree to speed up intersection detection.
 
 ## To-Do
-- [ ] Profile `par_iter` over pixels into a buffer against current method to see if line mutex locking and releasing is causing slow-downs
 - [ ] Other geometry.
     - [x] Triangles
     - [ ] Triangular meshes from OBJs
