@@ -98,8 +98,8 @@ impl Mesh {
 
                     // TODO: test
                     // poly -> tris
-                    for i in 3..face_verts.len() {
-                        let (v_new, n_new) = parse_face_vertex(face_verts[i])?;
+                    for face_vert in face_verts.iter().skip(3) {
+                        let (v_new, n_new) = parse_face_vertex(face_vert)?;
 
                         let tri_verts = [vertices[v0], vertices[v2], vertices[v_new]];
                         let tri_normals = if !normals.is_empty() {

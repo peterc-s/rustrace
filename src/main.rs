@@ -8,7 +8,7 @@ use rand::{rngs::SmallRng, Rng, SeedableRng};
 use sphere::Sphere;
 use vec3::Vec3;
 
-use crate::{aabb::SplitAxis, mesh::Mesh, triangle::Triangle};
+use crate::{aabb::SplitAxis, mesh::Mesh};
 
 #[global_allocator]
 static GLOBAL: MiMalloc = MiMalloc;
@@ -30,7 +30,7 @@ mod vec3;
 fn main() -> Result<()> {
     // Camera setup
     let camera = CameraBuilder::default()
-        .set_image_width(300)
+        .set_image_width(200)
         .set_aspect_ratio(1.)
         .set_max_depth(50)
         .set_anti_aliasing(camera::AntiAliasing::Random(300))
