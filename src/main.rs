@@ -20,6 +20,8 @@ mod hit;
 mod hit_list;
 mod interval;
 mod material;
+mod mesh;
+mod obj;
 mod ray;
 mod sphere;
 mod triangle;
