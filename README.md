@@ -13,6 +13,7 @@ Rendered at 500 samples per pixel, 1280x720, in just under 3 minutes (same lapto
 - Geometry:
     - Spheres
     - Triangles
+    - Triangular meshes
 - Materials:
     - Lambertian (diffuse),
     - Dielectric,
@@ -28,6 +29,11 @@ Rendered at 500 samples per pixel, 1280x720, in just under 3 minutes (same lapto
 - [ ] Other geometry.
     - [x] Triangles
     - [ ] Triangular meshes from OBJs
+        - [x] Basic OBJ parsing
+        - [x] Normal interpolation
+        - [ ] Clean up implementation
+        - [ ] Look at optimisations
+        - [ ] Setting position, scale, etc. (transforms) for meshes
 - [ ] Texturing.
 - [ ] Lighting.
 - [ ] Transforms.

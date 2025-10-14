@@ -12,26 +12,32 @@ use crate::{
 #[derive(Debug)]
 pub struct Triangle {
     pub vertices: [Vec3; 3],
-    pub norm: Vec3,
+    pub normals: [Vec3; 3],
     pub mat: Box<dyn Material>,
 }
 
 impl Triangle {
-    pub fn new(vertices: [Vec3; 3], norm: Option<Vec3>, mat: Box<dyn Material>) -> Self {
-        let norm = match norm {
+    pub fn new(vertices: [Vec3; 3], normals: Option<[Vec3; 3]>, mat: Box<dyn Material>) -> Self {
+        let normals = match normals {
             Some(n) => n,
             None => {
                 let e1 = vertices[1] - vertices[0];
                 let e2 = vertices[2] - vertices[1];
-                cross(&e1, &e2)
+                let n = cross(&e1, &e2);
+                [n, n, n]
             }
         };
 
         Self {
             vertices,
-            norm,
+            normals,
             mat,
         }
+    }
+
+    fn get_norm(&self, u: f64, v: f64) -> Vec3 {
+        let w = 1.0 - u - v;
+        (self.normals[0] * w + self.normals[1] * u + self.normals[2] * v).unit()
     }
 }
 
@@ -65,14 +71,15 @@ impl Hittable for Triangle {
             let p = r.at(t);
             let mat = &(*self.mat);
 
-            // TODO: front face
-            let rec = HitRecord {
+            let mut rec = HitRecord {
                 p,
-                norm: self.norm,
+                norm: self.get_norm(u, v),
                 mat,
                 t,
                 front_face: true,
             };
+
+            rec.set_face_norm(r, &self.get_norm(u, v));
 
             Some(rec)
         } else {

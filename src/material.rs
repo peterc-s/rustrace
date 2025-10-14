@@ -17,6 +17,8 @@ pub trait Material: Debug + Sync + Send {
         rec: &HitRecord,
         rng: Option<&mut SmallRng>,
     ) -> Result<(Ray, Vec3)>;
+
+    fn clone_box(&self) -> Box<dyn Material>;
 }
 
 #[derive(Copy, Clone, Debug, Default)]
@@ -45,6 +47,10 @@ impl Material for Lambertian {
 
         Ok((ray![rec.p, scatter_dir], self.albedo))
     }
+
+    fn clone_box(&self) -> Box<dyn Material> {
+        Box::new(*self)
+    }
 }
 
 #[derive(Copy, Clone, Debug, Default)]
@@ -70,6 +76,10 @@ impl Material for Metal {
         let mut reflected = r_in.direction.reflect(&rec.norm);
         reflected = reflected.unit() + (Vec3::random_unit(rng.unwrap()) * self.fuzz);
         Ok((ray![rec.p, reflected], self.albedo))
+    }
+
+    fn clone_box(&self) -> Box<dyn Material> {
+        Box::new(*self)
     }
 }
 
@@ -118,5 +128,9 @@ impl Material for Dielectric {
         };
 
         Ok((ray![rec.p, direction], vec3![1.0, 1.0, 1.0]))
+    }
+
+    fn clone_box(&self) -> Box<dyn Material> {
+        Box::new(*self)
     }
 }

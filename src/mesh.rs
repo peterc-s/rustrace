@@ -1,29 +1,130 @@
-use std::sync::Arc;
+use std::{
+    fs::File,
+    io::{BufRead, BufReader},
+};
 
 use crate::{
-    aabb::Aabb,
+    aabb::{Aabb, SplitAxis},
     bvh::BVHTree,
     hit::{HitRecord, Hittable},
-    interval,
+    hit_list::HittableList,
     interval::Interval,
     material::Material,
     ray::Ray,
-    vec3::{cross, dot, Vec3},
+    triangle::Triangle,
+    vec3::Vec3,
 };
+
+use crate::vec3;
+
+use anyhow::Result;
 
 #[derive(Debug)]
 pub struct Mesh {
-    vertices: Vec<Vec3>,
-    normals: Vec<Vec3>,
-    indices: Vec<[usize; 3]>,
-    normal_indices: Vec<[usize; 3]>,
-    mat: Box<dyn Material>,
     bvh: BVHTree,
 }
 
 impl Mesh {
-    pub fn from_obj(path: &str, mat: Box<dyn Material>) -> Self {
-        todo!()
+    // TODO: investigate moving elsewhere
+    pub fn from_obj(path: &str, mat: Box<dyn Material>) -> Result<Self> {
+        fn parse_face_vertex(s: &str) -> Result<(usize, usize)> {
+            let parts: Vec<&str> = s.split("/").collect();
+            let v_idx: usize = parts[0].parse::<usize>()? - 1;
+            let n_idx = if parts.len() > 2 && !parts[2].is_empty() {
+                parts[2].parse::<usize>()? - 1
+            } else {
+                v_idx
+            };
+
+            Ok((v_idx, n_idx))
+        }
+
+        let file = File::open(path)?;
+        let reader = BufReader::new(file);
+
+        let mut vertices = Vec::new();
+        let mut normals = Vec::new();
+        let mut triangles = HittableList::new();
+
+        // read OBJ file
+        for line in reader.lines() {
+            let line = line?;
+            let line = line.trim();
+
+            // comments and empties
+            if line.is_empty() || line.starts_with('#') {
+                continue;
+            }
+
+            let mut parts = line.split_whitespace();
+            let prefix = parts.next().unwrap();
+
+            // parse lines accordingly
+            match prefix {
+                "v" => {
+                    let x: f64 = parts.next().unwrap().parse()?;
+                    let y: f64 = parts.next().unwrap().parse()?;
+                    let z: f64 = parts.next().unwrap().parse()?;
+                    vertices.push(vec3![x, y, z]);
+                }
+                "vn" => {
+                    let x: f64 = parts.next().unwrap().parse()?;
+                    let y: f64 = parts.next().unwrap().parse()?;
+                    let z: f64 = parts.next().unwrap().parse()?;
+                    normals.push(vec3![x, y, z]);
+                }
+                "f" => {
+                    let face_verts: Vec<_> = parts.collect();
+                    if face_verts.len() < 3 {
+                        continue;
+                    }
+
+                    let (v0, n0) = parse_face_vertex(face_verts[0])?;
+                    let (v1, n1) = parse_face_vertex(face_verts[1])?;
+                    let (mut v2, mut n2) = parse_face_vertex(face_verts[2])?;
+
+                    let tri_verts = [vertices[v0], vertices[v1], vertices[v2]];
+                    let tri_normals = if !normals.is_empty() {
+                        Some([normals[n0], normals[n1], normals[n2]])
+                    } else {
+                        None
+                    };
+
+                    triangles.add(Box::new(Triangle::new(
+                        tri_verts,
+                        tri_normals,
+                        mat.clone_box(),
+                    )));
+
+                    // TODO: test
+                    // poly -> tris
+                    for i in 3..face_verts.len() {
+                        let (v_new, n_new) = parse_face_vertex(face_verts[i])?;
+
+                        let tri_verts = [vertices[v0], vertices[v2], vertices[v_new]];
+                        let tri_normals = if !normals.is_empty() {
+                            Some([normals[n0], normals[n1], normals[n2]])
+                        } else {
+                            None
+                        };
+
+                        triangles.add(Box::new(Triangle::new(
+                            tri_verts,
+                            tri_normals,
+                            mat.clone_box(),
+                        )));
+
+                        v2 = v_new;
+                        n2 = n_new;
+                    }
+                }
+                _ => {}
+            }
+        }
+
+        Ok(Self {
+            bvh: BVHTree::from_hit_list(triangles, SplitAxis::Y),
+        })
     }
 }
 
@@ -36,92 +137,5 @@ impl Hittable for Mesh {
     fn bound(&self) -> Aabb {
         // root bvh bounding box should encapsulate the mesh
         self.bvh.aabb
-    }
-}
-
-#[derive(Debug)]
-pub struct MeshTri {
-    mesh: Arc<Mesh>,
-    index: usize,
-}
-
-impl MeshTri {
-    fn get_norm(&self, u: f64, v: f64) -> Vec3 {
-        let mesh = &self.mesh;
-        let [i0, i1, i2] = mesh.indices[self.index];
-        let normals = [mesh.normals[i0], mesh.normals[i1], mesh.normals[i2]];
-        let w = 1.0 - u - v;
-        (normals[0] * w + normals[1] * u + normals[2] * v).unit()
-    }
-}
-
-impl Hittable for MeshTri {
-    fn hit(&self, r: &Ray, _ray_t: Interval) -> Option<HitRecord<'_>> {
-        let mesh = &self.mesh;
-        let [i0, i1, i2] = mesh.indices[self.index];
-        let vertices = [mesh.vertices[i0], mesh.vertices[i1], mesh.vertices[i2]];
-
-        // https://en.wikipedia.org/wiki/M%C3%B6ller%E2%80%93Trumbore_intersection_algorithm
-        let e1 = vertices[1] - vertices[0];
-        let e2 = vertices[2] - vertices[0];
-        let ray_cross_e2 = cross(&r.direction, &e2);
-        let det = dot(&e1, &ray_cross_e2);
-
-        if det > -f64::EPSILON && det < f64::EPSILON {
-            return None;
-        }
-
-        let inv_det = 1. / det;
-        let s = r.origin - vertices[0];
-        let u = dot(&s, &ray_cross_e2) * inv_det;
-        if !(0. ..=1.).contains(&u) {
-            return None;
-        }
-
-        let s_cross_e1 = cross(&s, &e1);
-        let v = inv_det * dot(&r.direction, &s_cross_e1);
-        if v < 0. || u + v > 1. {
-            return None;
-        }
-
-        let t = inv_det * dot(&e2, &s_cross_e1);
-        if t > f64::EPSILON {
-            let p = r.at(t);
-            let mat = &(*mesh.mat);
-
-            // TODO: front face
-            let rec = HitRecord {
-                p,
-                norm: self.get_norm(u, v),
-                mat,
-                t,
-                front_face: true,
-            };
-
-            Some(rec)
-        } else {
-            None
-        }
-    }
-
-    fn bound(&self) -> Aabb {
-        fn min_max_axis(vertices: [Vec3; 3], axis: usize) -> Interval {
-            let mut iter = vertices.iter().map(|v| v[axis]);
-            let first = iter.next().expect("No vertices.");
-            let (min, max) = iter.fold((first, first), |(min, max), val| {
-                (min.min(val), max.max(val))
-            });
-            interval![min, max]
-        }
-
-        let mesh = &self.mesh;
-        let [i0, i1, i2] = mesh.indices[self.index];
-        let vertices = [mesh.vertices[i0], mesh.vertices[i1], mesh.vertices[i2]];
-
-        Aabb {
-            x: min_max_axis(vertices, 0),
-            y: min_max_axis(vertices, 1),
-            z: min_max_axis(vertices, 2),
-        }
     }
 }
