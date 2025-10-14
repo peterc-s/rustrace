@@ -27,7 +27,7 @@ Rendered at 500 samples per pixel, 1280x720, in just under 3 minutes (same lapto
 ## To-Do
 - [ ] Other geometry.
     - [x] Triangles
-    - [ ] Triangular meshes from OBJs
+    - [ ] Triangular meshes from OBJs - https://github.com/peterc-s/rustrace/tree/feature/meshes
 - [ ] Texturing.
 - [ ] Lighting.
 - [ ] Transforms.
