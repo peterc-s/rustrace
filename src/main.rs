@@ -8,7 +8,7 @@ use rand::{rngs::SmallRng, Rng, SeedableRng};
 use sphere::Sphere;
 use vec3::Vec3;
 
-use crate::{aabb::SplitAxis, triangle::Triangle};
+use crate::{aabb::SplitAxis, mesh::Mesh};
 
 #[global_allocator]
 static GLOBAL: MiMalloc = MiMalloc;
@@ -20,6 +20,7 @@ mod hit;
 mod hit_list;
 mod interval;
 mod material;
+mod mesh;
 mod ray;
 mod sphere;
 mod triangle;
@@ -29,10 +30,10 @@ mod vec3;
 fn main() -> Result<()> {
     // Camera setup
     let camera = CameraBuilder::default()
-        .set_image_width(300)
-        .set_aspect_ratio(1.)
+        .set_image_width(1920)
+        .set_aspect_ratio(16. / 9.)
         .set_max_depth(50)
-        .set_anti_aliasing(camera::AntiAliasing::Random(100))
+        .set_anti_aliasing(camera::AntiAliasing::Random(1000))
         .set_vfov(30)
         .set_look_from(vec3![13.0, 2.0, 3.0])
         .set_look_at(vec3![0.0, 0.0, 0.0])
@@ -42,40 +43,47 @@ fn main() -> Result<()> {
 
     // Scene
     let mut hit_list = HittableList::default();
+
+    let material_teapot = Box::new(Metal::new(vec3![1., 1., 1.], 0.0));
+    // let material_teapot = Box::new(Lambertian::new(vec3![1., 1., 1.]));
+    // let material_teapot = Box::new(Dielectric::new(1.5));
+    let teapot = Mesh::from_obj("objs/teapot.obj", material_teapot)?;
+    hit_list.add(Box::new(teapot));
+
     let material_ground = Box::new(Lambertian::new(vec3![0.8, 0.8, 0.0]));
 
     hit_list.add(Box::new(Sphere {
-        centre: vec3![0.0, -1000.0, 0.0],
+        centre: vec3![0.0, -1002.0, 0.0],
         radius: 1000.0,
         mat: material_ground,
     }));
-
-    let material1 = Box::new(Dielectric::new(1.5));
-    hit_list.add(Box::new(Sphere {
-        centre: vec3![0.0, 1.0, 0.0],
-        radius: 1.0,
-        mat: material1.clone(),
-    }));
-
-    let material2 = Box::new(Lambertian::new(vec3![0.4, 0.2, 0.1]));
-    hit_list.add(Box::new(Sphere {
-        centre: vec3![-4.0, 1.0, 0.0],
-        radius: 1.0,
-        mat: material2,
-    }));
-
-    hit_list.add(Box::new(Triangle::new(
-        [vec3![7., 2., 0.], vec3![6., 1., 0.], vec3![7., 2., 1.]],
-        None,
-        material1,
-    )));
-
-    let material3 = Box::new(Metal::new(vec3![0.7, 0.6, 0.5], 0.0));
-    hit_list.add(Box::new(Sphere {
-        centre: vec3![4.0, 1.0, 0.0],
-        radius: 1.0,
-        mat: material3,
-    }));
+    //
+    // let material1 = Box::new(Dielectric::new(1.5));
+    // hit_list.add(Box::new(Sphere {
+    //     centre: vec3![0.0, 1.0, 0.0],
+    //     radius: 1.0,
+    //     mat: material1.clone(),
+    // }));
+    //
+    // let material2 = Box::new(Lambertian::new(vec3![0.4, 0.2, 0.1]));
+    // hit_list.add(Box::new(Sphere {
+    //     centre: vec3![-4.0, 1.0, 0.0],
+    //     radius: 1.0,
+    //     mat: material2,
+    // }));
+    //
+    // hit_list.add(Box::new(Triangle::new(
+    //     [vec3![7., 2., 0.], vec3![6., 1., 0.], vec3![7., 2., 1.]],
+    //     None,
+    //     material1,
+    // )));
+    //
+    // let material3 = Box::new(Metal::new(vec3![0.7, 0.6, 0.5], 0.0));
+    // hit_list.add(Box::new(Sphere {
+    //     centre: vec3![4.0, 1.0, 0.0],
+    //     radius: 1.0,
+    //     mat: material3,
+    // }));
 
     let mut rng = SmallRng::from_os_rng();
     for a in -11..11 {
@@ -83,7 +91,7 @@ fn main() -> Result<()> {
             let choose_mat = rng.random_range(0.0..=1.0);
             let centre = vec3![
                 a as f64 + 0.9 * rng.random_range(0.0..=1.0),
-                0.2,
+                0.2 - 2.,
                 b as f64 + 0.9 * rng.random_range(0.0..=1.0)
             ];
 

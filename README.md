@@ -3,16 +3,17 @@ Raytracer in Rust rougly following [Raytracing in One Weekend](https://raytracin
 
 ![](final.png)
 
-Rendered at 1000 samples per pixel, 1920x1080, in 13 minutes on an laptop (13th Gen i5-1350P, 16GB DDR5 @ 4800 MT/s, powersave governor - unplugged!).
+Rendered at 1000 samples per pixel, max bounce depth 50, 1920x1080.
 
 ![](final_small.png)
 
-Rendered at 500 samples per pixel, 1280x720, in just under 3 minutes (same laptop).
+Rendered at 500 samples per pixel, max bounce depth 50, 1280x720.
 
 ## Features
 - Geometry:
     - Spheres
     - Triangles
+    - Triangular meshes
 - Materials:
     - Lambertian (diffuse),
     - Dielectric,
@@ -27,7 +28,13 @@ Rendered at 500 samples per pixel, 1280x720, in just under 3 minutes (same lapto
 ## To-Do
 - [ ] Other geometry.
     - [x] Triangles
-    - [ ] Triangular meshes from OBJs - https://github.com/peterc-s/rustrace/tree/feature/meshes
+    - [ ] Triangular meshes from OBJs
+        - [x] Basic OBJ parsing
+        - [x] Normal interpolation
+        - [ ] Clean up implementation
+        - [ ] Look at optimisations
+            - [x] Surface area heuristic splitting
+        - [ ] Setting position, scale, etc. (transforms) for meshes
 - [ ] Texturing.
 - [ ] Lighting.
 - [ ] Transforms.
