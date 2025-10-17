@@ -13,11 +13,17 @@ pub enum SplitAxis {
 }
 
 impl SplitAxis {
-    pub fn next(self) -> Self {
-        match self {
-            Self::X => Self::Y,
-            Self::Y => Self::Z,
-            Self::Z => Self::X,
+    pub fn choose_from_aabb(aabb: Aabb) -> Self {
+        let x = aabb.x.size();
+        let y = aabb.y.size();
+        let z = aabb.z.size();
+
+        if x > y && x > z {
+            SplitAxis::X
+        } else if y > z {
+            SplitAxis::Y
+        } else {
+            SplitAxis::Z
         }
     }
 }
@@ -59,28 +65,22 @@ impl Aabb {
         self.x.contains(point.e[0]) && self.y.contains(point.e[1]) && self.z.contains(point.e[2])
     }
 
-    pub fn split(&self, axis: SplitAxis) -> (Aabb, Aabb) {
+    pub fn split_at(&self, axis: SplitAxis, at: f64) -> (Aabb, Aabb) {
         let mut left = *self;
         let mut right = *self;
 
         match axis {
             SplitAxis::X => {
-                let split = self.x.mid();
-
-                left.x.max = split;
-                right.x.min = split;
+                left.x.max = at;
+                right.x.min = at;
             }
             SplitAxis::Y => {
-                let split = self.y.mid();
-
-                left.y.max = split;
-                right.y.min = split;
+                left.y.max = at;
+                right.y.min = at;
             }
             SplitAxis::Z => {
-                let split = self.z.mid();
-
-                left.z.max = split;
-                right.z.min = split;
+                left.z.max = at;
+                right.z.min = at;
             }
         }
 
@@ -134,5 +134,16 @@ impl Aabb {
 
         // Reject negative t
         intersection_t.filter(|&t| t > 0.)
+    }
+
+    pub fn centroid(&self) -> Vec3 {
+        vec3![self.x.mid(), self.y.mid(), self.z.mid()]
+    }
+
+    pub fn surface_area(&self) -> f64 {
+        let x = self.x.size();
+        let y = self.y.size();
+        let z = self.z.size();
+        2. * (x * y + y * z + z * x)
     }
 }
