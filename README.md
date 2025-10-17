@@ -33,6 +33,7 @@ Rendered at 500 samples per pixel, 1280x720, in just under 3 minutes (same lapto
         - [x] Normal interpolation
         - [ ] Clean up implementation
         - [ ] Look at optimisations
+            - [x] Surface area heuristic splitting
         - [ ] Setting position, scale, etc. (transforms) for meshes
 - [ ] Texturing.
 - [ ] Lighting.
