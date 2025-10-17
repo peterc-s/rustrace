@@ -68,7 +68,7 @@ impl Hittable for Triangle {
 
         let t = inv_det * dot(&e2, &s_cross_e1);
         if t > f64::EPSILON {
-            let p = r.at(t);
+            let p = r.at(t - f64::EPSILON);
             let mat = &(*self.mat);
 
             let mut rec = HitRecord {

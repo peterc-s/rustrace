@@ -30,7 +30,7 @@ mod vec3;
 fn main() -> Result<()> {
     // Camera setup
     let camera = CameraBuilder::default()
-        .set_image_width(200)
+        .set_image_width(500)
         .set_aspect_ratio(1.)
         .set_max_depth(50)
         .set_anti_aliasing(camera::AntiAliasing::Random(300))
@@ -45,6 +45,8 @@ fn main() -> Result<()> {
     let mut hit_list = HittableList::default();
 
     let material_teapot = Box::new(Metal::new(vec3![1., 1., 1.], 0.0));
+    // let material_teapot = Box::new(Lambertian::new(vec3![1., 1., 1.]));
+    // let material_teapot = Box::new(Dielectric::new(1.5));
     let teapot = Mesh::from_obj("objs/teapot.obj", material_teapot)?;
     hit_list.add(Box::new(teapot));
 
