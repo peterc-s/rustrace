@@ -98,25 +98,25 @@ impl BVHTree {
             buckets[bucket_idx].bounds.union(&object_aabb);
         }
 
-        let mut costs = vec![0.; NUM_BUCKETS - 1];
+        let mut costs = [0.; NUM_BUCKETS - 1];
 
-        for i in 0..NUM_BUCKETS - 1 {
+        for (i, cost) in costs.iter_mut().enumerate().take(NUM_BUCKETS - 1) {
             let mut left_box = Aabb::new();
             let mut right_box = Aabb::new();
             let mut left_count = 0;
             let mut right_count = 0;
 
-            for j in 0..=i {
-                left_box.union(&buckets[j].bounds);
-                left_count += buckets[j].count;
+            for left_bucket in buckets.iter().take(i + 1) {
+                left_box.union(&left_bucket.bounds);
+                left_count += left_bucket.count;
             }
 
-            for j in (i + 1)..NUM_BUCKETS {
-                right_box.union(&buckets[j].bounds);
-                right_count += buckets[j].count;
+            for right_bucket in buckets.iter().take(NUM_BUCKETS).skip(i + 1) {
+                right_box.union(&right_bucket.bounds);
+                right_count += right_bucket.count;
             }
 
-            costs[i] = left_box.surface_area() * left_count as f64
+            *cost = left_box.surface_area() * left_count as f64
                 + right_box.surface_area() * right_count as f64;
         }
 
