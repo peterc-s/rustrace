@@ -40,3 +40,4 @@ Rendered at 500 samples per pixel, max bounce depth 50, 1280x720.
 - [ ] Transforms.
 - [ ] Volumetrics.
 - [ ] Command line image output configuration.
+- [ ] Better documentation!
