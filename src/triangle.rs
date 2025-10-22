@@ -1,3 +1,5 @@
+//! Contains the [`Triangle`] struct which models a 2D triangle.
+
 use crate::{
     aabb::Aabb,
     hit::{HitRecord, Hittable},
@@ -8,14 +10,21 @@ use crate::{
     vec3::{cross, dot, Vec3},
 };
 
+/// The [`Triangle`] struct itself.
 #[derive(Debug)]
 pub struct Triangle {
+    /// The three vertices that make up the triangle.
     pub vertices: [Vec3; 3],
+    /// The vertex normals.
     pub normals: [Vec3; 3],
+    /// The [`Material`] of the triangle.
     pub mat: Box<dyn Material>,
 }
 
 impl Triangle {
+    /// Create a new [`Triangle`] with the given `vertices`, `normals`, and `mat`.
+    /// If no `normals` are supplied, they are calculated by taking the
+    /// [cross product](crate::vec3::cross) of the edges `v0 -> v1` and `v1 -> v2`.
     pub fn new(vertices: [Vec3; 3], normals: Option<[Vec3; 3]>, mat: Box<dyn Material>) -> Self {
         let normals = match normals {
             Some(n) => n,
@@ -34,6 +43,8 @@ impl Triangle {
         }
     }
 
+    /// Get the interpolated normal at a point on the [`Triangle`] using
+    /// Barycentric coordinates `(u, v)` (`w` is calculated).
     fn get_norm(&self, u: f64, v: f64) -> Vec3 {
         let w = 1.0 - u - v;
         (self.normals[0] * w + self.normals[1] * u + self.normals[2] * v).unit()
@@ -41,8 +52,11 @@ impl Triangle {
 }
 
 impl Hittable for Triangle {
+    /// Uses the Möller-Trumbore intersection algorithm to determine if a [ray](Ray)
+    /// intersects the [`Triangle`], and where. See [wikipedia](https://en.wikipedia.org/wiki/M%C3%B6ller%E2%80%93Trumbore_intersection_algorithm).
+    /// Returns a [`Some(HitRecord)`](Option<HitRecord>) if a hit occurred,
+    /// otherwise [`None`].
     fn hit(&self, r: &Ray, _ray_t: Interval) -> Option<HitRecord<'_>> {
-        // https://en.wikipedia.org/wiki/M%C3%B6ller%E2%80%93Trumbore_intersection_algorithm
         let e1 = self.vertices[1] - self.vertices[0];
         let e2 = self.vertices[2] - self.vertices[0];
         let ray_cross_e2 = cross(&r.direction, &e2);

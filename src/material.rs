@@ -75,7 +75,7 @@ pub struct Metal {
 
 impl Metal {
     /// Create a new [`Metal`] with the given `fuzz` (must be inclusively between 0 and 1).
-    pub fn new(albedo: Vec3, mut fuzz: f64) -> Self {
+    pub fn new(albedo: Vec3, fuzz: f64) -> Self {
         assert!(
             (0.0..=1.0).contains(&fuzz),
             "Fuzz may not exceed 0.0 to 0.1"

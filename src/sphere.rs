@@ -1,3 +1,5 @@
+//! Contains the [`Sphere`] struct that models a perfect 3D sphere.
+
 use crate::{
     aabb::Aabb,
     hit::{HitRecord, Hittable},
@@ -8,15 +10,23 @@ use crate::{
     vec3::{dot, Vec3},
 };
 
+/// The [`Sphere`] struct itself. The [`centre`](field@Sphere::centre),
+/// [`radius`](field@Sphere::radius) and [material](field@Sphere::mat) can
+/// all be set.
 #[derive(Debug)]
 pub struct Sphere {
+    /// The centrepoint of the sphere.
     pub centre: Vec3,
+    /// The radius of the sphere.
     pub radius: f64,
+    /// The [`Material`] of the sphere.
     pub mat: Box<dyn Material>,
 }
 
-#[allow(dead_code)]
 impl Sphere {
+    /// Create a new sphere with the given [`centre`](field@Sphere::centre),
+    /// [`radius`](field@Sphere::radius), and [`mat`](field@Sphere::mat).
+    #[allow(dead_code)]
     fn new(centre: Vec3, radius: f64, mat: Box<dyn Material>) -> Sphere {
         Sphere {
             centre,
@@ -27,6 +37,8 @@ impl Sphere {
 }
 
 impl Hittable for Sphere {
+    /// Check if a given [`Ray`] hit the sphere. Returns a [`Some(HitRecord)`](Option<HitRecord>)
+    /// with the closest intersection if a [ray](Ray) intersects it, otherwise [`None`].
     fn hit(&self, r: &Ray, ray_t: Interval) -> Option<HitRecord<'_>> {
         let oc = self.centre - r.origin;
         let a = r.direction.length_squared();
