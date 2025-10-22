@@ -1,3 +1,10 @@
+//! This module contains the implementation of a [`BVHTree`] struct which supports being
+//! created from a [`HittableList`]. Used to optimise intersection tests, see
+//! [wikipedia](https://en.wikipedia.org/wiki/Bounding_volume_hierarchy) for more information.
+//! This implementation also uses surface area heuristic splitting, see
+//! [here](https://www.pbr-book.org/3ed-2018/Primitives_and_Intersection_Acceleration/Bounding_Volume_Hierarchies)
+//! for more information.
+
 use crate::{
     aabb::{Aabb, SplitAxis},
     hit::{HitRecord, Hittable},
@@ -6,6 +13,7 @@ use crate::{
     ray::Ray,
 };
 
+/// Used in [BVHTree::sah_split] to bucket objects.
 #[derive(Debug, Clone, Copy)]
 struct Bucket {
     count: usize,
@@ -13,6 +21,7 @@ struct Bucket {
 }
 
 impl Bucket {
+    /// Create a new bucket with a `count` of `0` and a `bounds` of [`Aabb::empty()`].
     fn new() -> Self {
         Self {
             count: 0,
@@ -21,21 +30,29 @@ impl Bucket {
     }
 }
 
+/// The [`BVHTree`] struct itself. Has two possible child nodes `left` and `right`
+/// which must be [boxed](Box). Has an [`aabb`](Aabb) which bounds the [`objects`][HittableList]
+/// within the current node and its children.
 #[derive(Debug)]
 pub struct BVHTree {
+    /// The left subtree.
     pub left: Option<Box<BVHTree>>,
+    /// The right subtree.
     pub right: Option<Box<BVHTree>>,
+    /// This [`Aabb`] bounds all the [`objects`](HittableList) in this node and its children.
     pub aabb: Aabb,
+    /// The [objects](HittableList) contained within the current node.
     pub objects: HittableList,
 }
 
 impl BVHTree {
-    pub fn from_hit_list(hit_list: HittableList, split_axis: SplitAxis) -> Self {
+    /// Create a [`BVHTree`] from a [`HittableList`] using surface area heuristics to
+    /// split effectively. [Read more](https://www.pbr-book.org/3ed-2018/Primitives_and_Intersection_Acceleration/Bounding_Volume_Hierarchies).
+    pub fn from_hit_list(hit_list: HittableList) -> Self {
         let aabb = hit_list.bound();
 
-        let (left, right, both) = Self::sah_split(hit_list, &aabb, split_axis);
-
         let split_axis = SplitAxis::choose_from_aabb(aabb);
+        let (left, right, both) = Self::sah_split(hit_list, &aabb, split_axis);
 
         match (left.objects.is_empty(), right.objects.is_empty()) {
             (true, true) => Self {
@@ -48,23 +65,26 @@ impl BVHTree {
                 aabb,
                 objects: both,
                 left: None,
-                right: Some(Box::new(Self::from_hit_list(right, split_axis))),
+                right: Some(Box::new(Self::from_hit_list(right))),
             },
             (false, true) => Self {
                 aabb,
                 objects: both,
-                left: Some(Box::new(Self::from_hit_list(left, split_axis))),
+                left: Some(Box::new(Self::from_hit_list(left))),
                 right: None,
             },
             (false, false) => Self {
                 aabb,
                 objects: both,
-                left: Some(Box::new(Self::from_hit_list(left, split_axis))),
-                right: Some(Box::new(Self::from_hit_list(right, split_axis))),
+                left: Some(Box::new(Self::from_hit_list(left))),
+                right: Some(Box::new(Self::from_hit_list(right))),
             },
         }
     }
 
+    /// Splits a [`HittableList`] into three parts `(left, right, both)`
+    /// according to a surface area heuristic cost. Uses [`BVHTree::partition_objects()`] to
+    /// partition. [Read more](https://www.pbr-book.org/3ed-2018/Primitives_and_Intersection_Acceleration/Bounding_Volume_Hierarchies).
     fn sah_split(
         hit_list: HittableList,
         aabb: &Aabb,
@@ -133,6 +153,8 @@ impl BVHTree {
         Self::partition_objects(hit_list, split_axis, split_pos, aabb)
     }
 
+    /// Partitions [`hit_list`](HittableList) into three new [`HittableList`]s along the
+    /// given [`split_axis`](SplitAxis) and `split_pos`.
     fn partition_objects(
         hit_list: HittableList,
         split_axis: SplitAxis,
@@ -155,8 +177,8 @@ impl BVHTree {
             };
 
             match (
-                left_aabb.contains(&object_aabb),
-                right_aabb.contains(&object_aabb),
+                left_aabb.overlaps(&object_aabb),
+                right_aabb.overlaps(&object_aabb),
             ) {
                 (true, true) => both.add(object),
                 (true, false) if centroid_value < split_pos => left.add(object),
@@ -192,6 +214,9 @@ impl BVHTree {
 }
 
 impl Hittable for BVHTree {
+    /// Recursively check if the ray [`r`](Ray) hits any object in the current
+    /// [`BVHTree`] node or any sub-trees and returns a [`Some(HitRecord)`](Option<HitRecord>)
+    /// of the closest intersection if found. Otherwise, returns [`None`].
     fn hit(&self, r: &Ray, ray_t: Interval) -> Option<HitRecord<'_>> {
         let left = self.left.as_ref();
         let left_t = if let Some(node) = left {
@@ -236,6 +261,7 @@ impl Hittable for BVHTree {
         }
     }
 
+    /// Returns [`self.aabb`](field@BVHTree::aabb).
     fn bound(&self) -> Aabb {
         self.aabb
     }

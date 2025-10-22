@@ -1,3 +1,6 @@
+//! This module contains the [`Mesh`] struct which mostly implements OBJ parsing
+//! to construct [`BVHTree`] of [`Triangle`]s.
+
 use std::{
     fs::File,
     io::{BufRead, BufReader},
@@ -19,6 +22,8 @@ use crate::vec3;
 
 use anyhow::Result;
 
+/// The [`Mesh`] struct itself, contains a [`BVHTree`] that it defers
+/// [`Hittable::hit()`] and [`Hittable::bound()`] to.
 #[derive(Debug)]
 pub struct Mesh {
     bvh: BVHTree,
@@ -26,6 +31,8 @@ pub struct Mesh {
 
 impl Mesh {
     // TODO: investigate moving elsewhere
+    /// Basic OBJ parser, builds up a [`HittableList`] of [`Triangle`]s which
+    /// it then constructs a [`BVHTree`] out of.
     pub fn from_obj(path: &str, mat: Box<dyn Material>) -> Result<Self> {
         fn parse_face_vertex(s: &str) -> Result<(usize, usize)> {
             let parts: Vec<&str> = s.split("/").collect();
@@ -123,17 +130,19 @@ impl Mesh {
         }
 
         Ok(Self {
-            bvh: BVHTree::from_hit_list(triangles, SplitAxis::Y),
+            bvh: BVHTree::from_hit_list(triangles),
         })
     }
 }
 
 impl Hittable for Mesh {
+    /// Defers to [`BVHTree::hit()`] on its internal [`BVHTree`].
     fn hit(&self, r: &Ray, ray_t: Interval) -> Option<HitRecord<'_>> {
         // defer to mesh bvh
         self.bvh.hit(r, ray_t)
     }
 
+    /// Defers to its internal [`BVHTree`]'s [`Aabb`].
     fn bound(&self) -> Aabb {
         // root bvh bounding box should encapsulate the mesh
         self.bvh.aabb

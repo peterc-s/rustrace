@@ -35,9 +35,35 @@ Rendered at 500 samples per pixel, max bounce depth 50, 1280x720.
         - [ ] Look at optimisations
             - [x] Surface area heuristic splitting
         - [ ] Setting position, scale, etc. (transforms) for meshes
+- [ ] Clean up `camera.rs`.
 - [ ] Texturing.
 - [ ] Lighting.
 - [ ] Transforms.
 - [ ] Volumetrics.
 - [ ] Command line image output configuration.
 - [ ] Better documentation!
+    - [x] `aabb.rs`
+    - [ ] `bvh.rs`
+        - [x] Documentation
+        - [ ] Doc tests
+    - [ ] `camera.rs`
+        - [x] Documentation
+        - [ ] Doc tests
+    - [x] `hit.rs`
+    - [x] `hit_list.rs`
+    - [x] `interval.rs`
+    - [x] `material.rs`
+        - [x] Documentation
+        - [ ] Doc tests
+    - [ ] `mesh.rs`
+        - [x] Documentation
+        - [ ] Doc tests
+    - [x] `ray.rs`
+    - [x] `sphere.rs`
+        - [x] Documentation
+        - [ ] Doc tests
+    - [ ] `triangle.rs`
+        - [x] Documentation
+        - [ ] Doc tests
+    - [x] `utils.rs`
+    - [x] `vec3.rs`
