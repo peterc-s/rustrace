@@ -58,7 +58,7 @@ Rendered at 500 samples per pixel, max bounce depth 50, 1280x720.
     - [ ] `mesh.rs`
         - [x] Documentation
         - [ ] Doc tests
-    - [ ] `ray.rs`
+    - [x] `ray.rs`
     - [ ] `sphere.rs`
     - [ ] `triangle.rs`
     - [ ] `utils.rs`
