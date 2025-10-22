@@ -70,12 +70,10 @@ impl HittableList {
     /// use rustrace::hit_list::HittableList;
     /// let mut hit_list_0 = HittableList::new();
     /// let inner_0 = Box::new(HittableList::new());
-    ///
     /// hit_list_0.add(inner_0);
     ///
     /// let mut hit_list_1 = HittableList::new();
     /// let inner_1 = Box::new(HittableList::new());
-    ///
     /// hit_list_0.add(inner_1);
     ///
     /// hit_list_0.combine(hit_list_1);

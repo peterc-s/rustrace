@@ -51,9 +51,7 @@ Rendered at 500 samples per pixel, max bounce depth 50, 1280x720.
         - [ ] Doc tests
     - [x] `hit.rs`
     - [x] `hit_list.rs`
-    - [ ] `interval.rs`
-    - [ ] `lib.rs`
-    - [ ] `main.rs`
+    - [x] `interval.rs`
     - [ ] `material.rs`
     - [ ] `mesh.rs`
     - [ ] `ray.rs`
