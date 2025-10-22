@@ -123,7 +123,7 @@ impl Mesh {
         }
 
         Ok(Self {
-            bvh: BVHTree::from_hit_list(triangles, SplitAxis::Y),
+            bvh: BVHTree::from_hit_list(triangles),
         })
     }
 }

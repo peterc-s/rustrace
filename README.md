@@ -43,6 +43,8 @@ Rendered at 500 samples per pixel, max bounce depth 50, 1280x720.
 - [ ] Better documentation!
     - [x] `aabb.rs`
     - [ ] `bvh.rs`
+        - [x] Documentation
+        - [ ] Doc tests
     - [ ] `camera.rs`
     - [ ] `hit.rs`
     - [ ] `hit_list.rs`
