@@ -1,3 +1,7 @@
+//! This module contains all the logic for the main render loop and [camera](Camera)
+//! configurability. This includes supersampling configuration for
+//! [anti-aliasing](AntiAliasing) and defocus blur.
+
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::Mutex;
 
@@ -14,26 +18,35 @@ use crate::utils::deg_to_rad;
 use crate::vec3::{cross, Vec3};
 use crate::{interval, ray, vec3};
 
+/// Different supersampling modes for anti-aliasing.
 #[derive(Debug, Clone, Copy)]
 pub enum AntiAliasing {
+    /// Use a set grid supersampling mode with a specific square grid size.
+    /// <div class="warning">This doesn't remove anti-aliasing, just upsamples
+    /// the aliasing.</div>
     Grid(u16),
+    /// Sample using a random offset with this many samples per pixel.
     Random(u16),
 }
 
+/// Trait to support [AntiAliasing::Grid].
 trait AntiAliasingGrid {
     fn sample_grid(self, sample: u16) -> Result<Vec3>;
     fn get_ray_grid(self, i: u32, j: u32, sample: u16, rng: &mut SmallRng) -> Result<Ray>;
 }
 
+/// Trait to support [AntiAliasing::Random].
 trait AntiAliasingRandom {
     fn sample_random(self, rng: &mut SmallRng) -> Result<Vec3>;
     fn get_ray_random(self, i: u32, j: u32, rng: &mut SmallRng) -> Result<Ray>;
 }
 
+/// Trait to support sampling a [`Ray`]'s starting point using a defocus disc.
 trait Defocus {
     fn defocus_disc_sample(&self, rng: &mut SmallRng) -> Vec3;
 }
 
+/// Helper struct to build a [`Camera`] using the builder pattern.
 #[derive(Debug, Clone, Copy)]
 pub struct CameraBuilder {
     aspect_ratio: f64,
@@ -67,6 +80,7 @@ impl Default for CameraBuilder {
 
 #[allow(dead_code)]
 impl CameraBuilder {
+    /// Set the aspect ratio of the [`CameraBuilder`].
     pub fn set_aspect_ratio(self, aspect_ratio: f64) -> CameraBuilder {
         CameraBuilder {
             aspect_ratio,
@@ -74,6 +88,7 @@ impl CameraBuilder {
         }
     }
 
+    /// Set the image width of the [`CameraBuilder`].
     pub fn set_image_width(self, image_width: u32) -> CameraBuilder {
         CameraBuilder {
             image_width,
@@ -81,6 +96,7 @@ impl CameraBuilder {
         }
     }
 
+    /// Set the [anti-aliasing mode](AntiAliasing) of the [`CameraBuilder`].
     pub fn set_anti_aliasing(self, anti_aliasing: AntiAliasing) -> CameraBuilder {
         CameraBuilder {
             anti_aliasing,
@@ -88,26 +104,32 @@ impl CameraBuilder {
         }
     }
 
+    /// Set the maximum number of ray bounces to trace for the [`CameraBuilder`].
     pub fn set_max_depth(self, max_depth: u32) -> CameraBuilder {
         CameraBuilder { max_depth, ..self }
     }
 
+    /// Set the vertical field of view of the [`CameraBuilder`].
     pub fn set_vfov(self, vfov: u16) -> CameraBuilder {
         CameraBuilder { vfov, ..self }
     }
 
+    /// Set the position the [`Camera`] should look from once [built](CameraBuilder::build()).
     pub fn set_look_from(self, look_from: Vec3) -> CameraBuilder {
         CameraBuilder { look_from, ..self }
     }
 
+    /// Set the position the [`Camera`] should look at once [built](CameraBuilder::build()).
     pub fn set_look_at(self, look_at: Vec3) -> CameraBuilder {
         CameraBuilder { look_at, ..self }
     }
 
+    /// Set the camera-relative up direction for the [`CameraBuilder`].
     pub fn set_v_up(self, v_up: Vec3) -> CameraBuilder {
         CameraBuilder { v_up, ..self }
     }
 
+    /// Set the defocus angle for the [`CameraBuilder`].
     pub fn set_defocus_angle(self, defocus_angle: f64) -> CameraBuilder {
         CameraBuilder {
             defocus_angle,
@@ -115,10 +137,12 @@ impl CameraBuilder {
         }
     }
 
+    /// Set the focal distance for the [`CameraBuilder`].
     pub fn set_focus_dist(self, focus_dist: f64) -> CameraBuilder {
         CameraBuilder { focus_dist, ..self }
     }
 
+    /// Build a [`Camera`] from the [`CameraBuilder`].
     pub fn build(self) -> Camera {
         let mut image_height = (self.image_width as f64 / self.aspect_ratio) as u32;
         image_height = if image_height < 1 { 1 } else { image_height };
@@ -174,10 +198,13 @@ impl CameraBuilder {
     }
 }
 
+/// The main structure that holds camera information and implements [rendering](Camera::render()).
 #[derive(Debug, Clone, Copy)]
 pub struct Camera {
     // pub aspect_ratio: f64,
+    /// The supersampling anti-aliasing mode and configuration.
     pub anti_aliasing: AntiAliasing,
+    /// The width of the resulting image for a [render](Camera::render()).
     pub image_width: u32,
     image_height: u32,
     samples_scale: f64,
@@ -194,7 +221,9 @@ pub struct Camera {
     defocus_disc_v: Vec3,
 }
 
+// TODO: fix
 impl AntiAliasingGrid for Camera {
+    /// Sample on a unit grid with sample number `sample`.
     fn sample_grid(self, sample: u16) -> Result<Vec3> {
         if let AntiAliasing::Grid(size) = self.anti_aliasing {
             let grid_size = size as f64;
@@ -210,6 +239,7 @@ impl AntiAliasingGrid for Camera {
         }
     }
 
+    /// Get a [ray](Ray) with grid sampling.
     fn get_ray_grid(self, i: u32, j: u32, sample: u16, rng: &mut SmallRng) -> Result<Ray> {
         let offset = self.sample_grid(sample)?;
         let pixel_sample = self.pixel00_loc
@@ -229,23 +259,21 @@ impl AntiAliasingGrid for Camera {
 }
 
 impl AntiAliasingRandom for Camera {
+    /// Randomly sample a [ray](Ray) offset in a unit square.
     fn sample_random(self, rng: &mut SmallRng) -> Result<Vec3> {
         match self.anti_aliasing {
-            AntiAliasing::Random(_) => {}
-            _ => {
-                return Err(anyhow!(
-                    "Sample random called when AntiAliasing mode is not Random."
-                ))
-            }
+            AntiAliasing::Random(_) => Ok(vec3![
+                rng.random_range(-0.5..=0.5),
+                rng.random_range(-0.5..=0.5),
+                0.0
+            ]),
+            _ => Err(anyhow!(
+                "Sample random called when AntiAliasing mode is not Random."
+            )),
         }
-
-        Ok(vec3![
-            rng.random_range(-0.5..=0.5),
-            rng.random_range(-0.5..=0.5),
-            0.0
-        ])
     }
 
+    /// Randomly sample a [ray](Ray).
     fn get_ray_random(self, i: u32, j: u32, rng: &mut SmallRng) -> Result<Ray> {
         let offset = self.sample_random(rng)?;
         let pixel_sample = self.pixel00_loc
@@ -265,6 +293,7 @@ impl AntiAliasingRandom for Camera {
 }
 
 impl Defocus for Camera {
+    /// Sample a [ray](Ray) start within a defocus disc.
     fn defocus_disc_sample(&self, rng: &mut SmallRng) -> Vec3 {
         let p = Vec3::random_in_unit_disc(rng);
         self.centre + (self.defocus_disc_u * p[0]) + (self.defocus_disc_v * p[1])
@@ -272,6 +301,8 @@ impl Defocus for Camera {
 }
 
 impl Camera {
+    /// Colour a [ray](Ray) recursively with a max further `depth`. Uses [Material::scatter()]
+    /// to decide attenuation and the next ray direction.
     fn ray_colour(r: &Ray, depth: u32, world: &dyn Hittable, rng: &mut SmallRng) -> Vec3 {
         if depth == 0 {
             return vec3![0.0, 0.0, 0.0];
@@ -289,6 +320,8 @@ impl Camera {
         vec3![1.0, 1.0, 1.0] * (1.0 - a) + vec3![0.5, 0.7, 1.0] * a
     }
 
+    /// Render the given `world`, outputting to the file at path `output`.
+    /// Uses [rayon] to paralellise rendering rows.
     pub fn render(self, output: &str, world: &dyn Hittable) -> Result<()> {
         let img = Mutex::new(RgbImage::new(self.image_width, self.image_height));
         let lines_done = AtomicUsize::new(0);

@@ -1,4 +1,4 @@
-//! This crate contains the implementation of a [`BVHTree`] struct which supports being
+//! This module contains the implementation of a [`BVHTree`] struct which supports being
 //! created from a [`HittableList`]. Used to optimise intersection tests, see
 //! [wikipedia](https://en.wikipedia.org/wiki/Bounding_volume_hierarchy) for more information.
 //! This implementation also uses surface area heuristic splitting, see

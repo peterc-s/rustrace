@@ -35,6 +35,7 @@ Rendered at 500 samples per pixel, max bounce depth 50, 1280x720.
         - [ ] Look at optimisations
             - [x] Surface area heuristic splitting
         - [ ] Setting position, scale, etc. (transforms) for meshes
+- [ ] Clean up `camera.rs`.
 - [ ] Texturing.
 - [ ] Lighting.
 - [ ] Transforms.
@@ -46,6 +47,8 @@ Rendered at 500 samples per pixel, max bounce depth 50, 1280x720.
         - [x] Documentation
         - [ ] Doc tests
     - [ ] `camera.rs`
+        - [x] Documentation
+        - [ ] Doc tests
     - [ ] `hit.rs`
     - [ ] `hit_list.rs`
     - [ ] `interval.rs`
