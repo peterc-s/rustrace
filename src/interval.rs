@@ -69,3 +69,9 @@ impl Interval {
         f64::midpoint(self.min, self.max)
     }
 }
+
+impl PartialEq for Interval {
+    fn eq(&self, other: &Self) -> bool {
+        self.min == other.min && self.max == other.max
+    }
+}

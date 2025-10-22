@@ -318,3 +318,9 @@ impl Aabb {
         2. * (x * y + y * z + z * x)
     }
 }
+
+impl PartialEq for Aabb {
+    fn eq(&self, other: &Self) -> bool {
+        self.x == other.x && self.y == other.y && self.z == other.z
+    }
+}
