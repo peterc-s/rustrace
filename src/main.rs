@@ -1,31 +1,20 @@
 use anyhow::Result;
-use bvh::BVHTree;
-use camera::CameraBuilder;
-use hit_list::HittableList;
-use material::{Dielectric, Lambertian, Material, Metal};
 use mimalloc::MiMalloc;
 use rand::{rngs::SmallRng, Rng, SeedableRng};
-use sphere::Sphere;
-use vec3::Vec3;
-
-use crate::{aabb::SplitAxis, mesh::Mesh};
+use rustrace::{
+    aabb::SplitAxis,
+    bvh::BVHTree,
+    camera::{AntiAliasing, CameraBuilder},
+    hit_list::HittableList,
+    material::{Dielectric, Lambertian, Material, Metal},
+    mesh::Mesh,
+    sphere::Sphere,
+    vec3,
+    vec3::Vec3,
+};
 
 #[global_allocator]
 static GLOBAL: MiMalloc = MiMalloc;
-
-mod aabb;
-mod bvh;
-mod camera;
-mod hit;
-mod hit_list;
-mod interval;
-mod material;
-mod mesh;
-mod ray;
-mod sphere;
-mod triangle;
-mod utils;
-mod vec3;
 
 fn main() -> Result<()> {
     // Camera setup
@@ -33,7 +22,7 @@ fn main() -> Result<()> {
         .set_image_width(1920)
         .set_aspect_ratio(16. / 9.)
         .set_max_depth(50)
-        .set_anti_aliasing(camera::AntiAliasing::Random(1000))
+        .set_anti_aliasing(AntiAliasing::Random(1000))
         .set_vfov(30)
         .set_look_from(vec3![13.0, 2.0, 3.0])
         .set_look_at(vec3![0.0, 0.0, 0.0])
@@ -47,6 +36,8 @@ fn main() -> Result<()> {
     let material_teapot = Box::new(Metal::new(vec3![1., 1., 1.], 0.0));
     // let material_teapot = Box::new(Lambertian::new(vec3![1., 1., 1.]));
     // let material_teapot = Box::new(Dielectric::new(1.5));
+
+    // TODO: get path in a better way than this
     let teapot = Mesh::from_obj("objs/teapot.obj", material_teapot)?;
     hit_list.add(Box::new(teapot));
 

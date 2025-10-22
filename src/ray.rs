@@ -8,7 +8,7 @@ pub struct Ray {
 
 #[macro_export]
 macro_rules! ray {
-    ($o:expr, $d:expr) => {
+    ($o:expr, $d:expr $(,)?) => {
         Ray {
             origin: $o,
             direction: $d,

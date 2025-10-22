@@ -155,8 +155,8 @@ impl BVHTree {
             };
 
             match (
-                left_aabb.contains(&object_aabb),
-                right_aabb.contains(&object_aabb),
+                left_aabb.overlaps(&object_aabb),
+                right_aabb.overlaps(&object_aabb),
             ) {
                 (true, true) => both.add(object),
                 (true, false) if centroid_value < split_pos => left.add(object),

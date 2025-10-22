@@ -5,8 +5,7 @@ use crate::{
     interval::Interval,
     material::Material,
     ray::Ray,
-    vec3::{cross, dot},
-    Vec3,
+    vec3::{cross, dot, Vec3},
 };
 
 #[derive(Debug)]

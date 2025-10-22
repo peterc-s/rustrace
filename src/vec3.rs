@@ -15,7 +15,7 @@ pub struct Vec3 {
 
 #[macro_export]
 macro_rules! vec3 {
-    ($a:expr, $b:expr, $c:expr) => {
+    ($a:expr, $b:expr, $c:expr $(,)?) => {
         Vec3 { e: [$a, $b, $c] }
     };
 }
@@ -248,3 +248,11 @@ impl IndexMut<usize> for Vec3 {
         &mut self.e[idx]
     }
 }
+
+impl PartialEq for Vec3 {
+    fn eq(&self, other: &Self) -> bool {
+        self.e == other.e
+    }
+}
+
+impl Eq for Vec3 {}
