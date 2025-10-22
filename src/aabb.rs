@@ -1,5 +1,5 @@
 //! This module contains a basic axis-aligned bounding box (AABB) implementation.
-//! It is mostly used in `bvh.rs` for constructing and using BVHTree.
+//! It is mostly used in [`bvh`](crate::bvh) for constructing and using [`BVHTree`](crate::bvh::BVHTree).
 
 use crate::{
     interval::Interval,
@@ -8,7 +8,7 @@ use crate::{
     vec3::{dot, Vec3},
 };
 
-/// Defines an axis to split an `Aabb` on with a split function.
+/// Defines an axis to split an [`Aabb`] on with a split function.
 #[derive(Debug, Clone, Copy)]
 pub enum SplitAxis {
     X,
@@ -17,7 +17,7 @@ pub enum SplitAxis {
 }
 
 impl SplitAxis {
-    /// Given an Aabb, returns the longest axis to split along.
+    /// Given an [`Aabb`], returns the longest axis to split along.
     pub fn choose_from_aabb(aabb: Aabb) -> Self {
         let x = aabb.x.size();
         let y = aabb.y.size();
@@ -33,7 +33,7 @@ impl SplitAxis {
     }
 }
 
-/// The `Aabb` struct itself, made of three `Interval`s, one for each axis.
+/// The [`Aabb`] struct itself, made of three [`Interval`]s, one for each axis.
 #[derive(Debug, Clone, Copy)]
 pub struct Aabb {
     pub x: Interval,
@@ -42,7 +42,7 @@ pub struct Aabb {
 }
 
 impl Aabb {
-    /// Creates an empty `Aabb` where each `Interval` is made with `Interval::empty()`.
+    /// Creates an empty [`Aabb`] where each [`Interval`] is made with [Interval::empty()].
     pub fn new() -> Self {
         Self {
             x: Interval::empty(),
@@ -51,7 +51,7 @@ impl Aabb {
         }
     }
 
-    /// Union two `Aabb`'s, mutates `self` to be the resulting union.
+    /// Union two [`Aabb`]'s, mutates `self` to be the resulting union.
     ///
     /// # Example
     ///
@@ -148,7 +148,7 @@ impl Aabb {
         self.x.contains(point.e[0]) && self.y.contains(point.e[1]) && self.z.contains(point.e[2])
     }
 
-    /// Split `self` along `axis` at a specified point without mutating.
+    /// Split `self` along the [`axis`](SplitAxis) at a specified point without mutating.
     ///
     /// # Example
     ///
@@ -190,8 +190,8 @@ impl Aabb {
         (left, right)
     }
 
-    /// If `ray` intersects `Aabb`, returns `Some(t)` where `t` is the closest intersection
-    /// (smallest `t` intersection). Otherwise, returns `None`.
+    /// If [`ray`](Ray) intersects `self`, returns [`Some(t)`](Option<T>) where `t` is the closest intersection
+    /// (smallest `t` intersection). Otherwise, returns [`None`](`Option<T>`).
     ///
     /// # Example
     ///

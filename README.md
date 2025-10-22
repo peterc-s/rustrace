@@ -41,3 +41,18 @@ Rendered at 500 samples per pixel, max bounce depth 50, 1280x720.
 - [ ] Volumetrics.
 - [ ] Command line image output configuration.
 - [ ] Better documentation!
+    - [x] `aabb.rs`
+    - [ ] `bvh.rs`
+    - [ ] `camera.rs`
+    - [ ] `hit.rs`
+    - [ ] `hit_list.rs`
+    - [ ] `interval.rs`
+    - [ ] `lib.rs`
+    - [ ] `main.rs`
+    - [ ] `material.rs`
+    - [ ] `mesh.rs`
+    - [ ] `ray.rs`
+    - [ ] `sphere.rs`
+    - [ ] `triangle.rs`
+    - [ ] `utils.rs`
+    - [ ] `vec3.rs`
