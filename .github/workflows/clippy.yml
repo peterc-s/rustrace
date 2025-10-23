@@ -1,0 +1,20 @@
+name: Clippy Check
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+env:
+  CARGO_TERM_COLOR: always
+  RUSTFLAGS: -Dwarnings
+
+jobs:
+  clippy:
+    name: Rustrace - Clippy Check
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    - name: Clippy Check
+      run: cargo clippy --verbose
