@@ -19,10 +19,10 @@ static GLOBAL: MiMalloc = MiMalloc;
 fn main() -> Result<()> {
     // Camera setup
     let camera = CameraBuilder::default()
-        .set_image_width(1920)
-        .set_aspect_ratio(16. / 9.)
+        .set_image_width(300)
+        .set_aspect_ratio(1.)
         .set_max_depth(50)
-        .set_anti_aliasing(AntiAliasing::Random(1000))
+        .set_anti_aliasing(AntiAliasing::Random(300))
         .set_vfov(30)
         .set_look_from(vec3![13.0, 2.0, 3.0])
         .set_look_at(vec3![0.0, 0.0, 0.0])
