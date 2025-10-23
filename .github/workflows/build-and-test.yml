@@ -31,4 +31,4 @@ jobs:
     - name: Run tests
       run: cargo test --verbose
     - name: Clippy check
-      run: cargo clippy --verbose
+      run: cargo install cargo-clippy && cargo clippy --verbose
