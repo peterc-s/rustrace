@@ -7,7 +7,7 @@ use std::{
 };
 
 use crate::{
-    aabb::{Aabb, SplitAxis},
+    aabb::Aabb,
     bvh::BVHTree,
     hit::{HitRecord, Hittable},
     hit_list::HittableList,

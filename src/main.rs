@@ -2,7 +2,6 @@ use anyhow::Result;
 use mimalloc::MiMalloc;
 use rand::{rngs::SmallRng, Rng, SeedableRng};
 use rustrace::{
-    aabb::SplitAxis,
     bvh::BVHTree,
     camera::{AntiAliasing, CameraBuilder},
     hit_list::HittableList,

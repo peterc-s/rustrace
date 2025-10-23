@@ -41,6 +41,12 @@ pub struct Aabb {
     pub z: Interval,
 }
 
+impl Default for Aabb {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl Aabb {
     /// Creates an empty [`Aabb`] where each [`Interval`] is made with [Interval::empty()].
     pub fn new() -> Self {
