@@ -27,18 +27,21 @@ macro_rules! interval {
 #[allow(dead_code)]
 impl Interval {
     /// Create a new [`Interval`] with the given `min` and `max`.
+    #[must_use]
     pub fn new(min: f64, max: f64) -> Interval {
         interval![min, max]
     }
 
     /// Create an [`Interval`] with a minimum of [`f64::INFINITY`] and
     /// a maximum of [`f64::NEG_INFINITY`], essentially containing nothing.
+    #[must_use]
     pub fn empty() -> Interval {
         interval![f64::INFINITY, f64::NEG_INFINITY]
     }
 
     /// Create an [`Interval`] with a minimum of [`f64::NEG_INFINITY`] and
     /// a maximum of [`f64::INFINITY`], essentially containing everything.
+    #[must_use]
     pub fn universe() -> Interval {
         interval![f64::NEG_INFINITY, f64::INFINITY]
     }
@@ -53,6 +56,7 @@ impl Interval {
     /// let size_1_interval = interval![0.0, 1.0];
     /// assert_eq!(size_1_interval.size(), 1.0);
     /// ```
+    #[must_use]
     pub fn size(self) -> f64 {
         self.max - self.min
     }
@@ -74,6 +78,7 @@ impl Interval {
     /// assert!(!i.contains(0.0 - f64::EPSILON));
     /// assert!(!i.contains(1.0 + f64::EPSILON));
     /// ```
+    #[must_use]
     pub fn contains(self, x: f64) -> bool {
         self.min <= x && x <= self.max
     }
@@ -97,6 +102,7 @@ impl Interval {
     /// // However, `i0` is contained within `i2`
     /// assert!(i2.contains_interval(&i0));
     /// ```
+    #[must_use]
     pub fn contains_interval(self, other: &Self) -> bool {
         self.contains(other.min) && self.contains(other.max)
     }
@@ -122,6 +128,7 @@ impl Interval {
     /// // But these do
     /// assert!(i1.overlaps(&i2));
     /// ```
+    #[must_use]
     pub fn overlaps(self, other: &Self) -> bool {
         self.min <= other.max && other.min <= self.max
     }
@@ -141,6 +148,7 @@ impl Interval {
     /// // But anything inside is
     /// assert!(i0.surrounds(0.0 + f64::EPSILON));
     /// ```
+    #[must_use]
     pub fn surrounds(self, x: f64) -> bool {
         self.min < x && x < self.max
     }
@@ -159,13 +167,14 @@ impl Interval {
     /// assert_eq!(i.clamp(-life), 0.0);
     /// assert_eq!(i.clamp(0.5), 0.5);
     /// ```
+    #[must_use]
     pub fn clamp(self, x: f64) -> f64 {
         if x < self.min {
             return self.min;
-        };
+        }
         if x > self.max {
             return self.max;
-        };
+        }
         x
     }
 
@@ -200,6 +209,7 @@ impl Interval {
     ///
     /// assert_eq!(i0.mid(), 0.0);
     /// ```
+    #[must_use]
     pub fn mid(self) -> f64 {
         f64::midpoint(self.min, self.max)
     }

@@ -13,7 +13,7 @@ use crate::{
     ray::Ray,
 };
 
-/// Used in [BVHTree::sah_split] to bucket objects.
+/// Used in [`BVHTree::sah_split`] to bucket objects.
 #[derive(Debug, Clone, Copy)]
 struct Bucket {
     count: usize,
@@ -48,6 +48,7 @@ pub struct BVHTree {
 impl BVHTree {
     /// Create a [`BVHTree`] from a [`HittableList`] using surface area heuristics to
     /// split effectively. [Read more](https://www.pbr-book.org/3ed-2018/Primitives_and_Intersection_Acceleration/Bounding_Volume_Hierarchies).
+    #[must_use]
     pub fn from_hit_list(hit_list: HittableList) -> Self {
         let aabb = hit_list.bound();
 
@@ -109,6 +110,9 @@ impl BVHTree {
                 SplitAxis::Z => centroid.e[2],
             };
 
+            #[expect(clippy::cast_possible_truncation)]
+            #[expect(clippy::cast_sign_loss)]
+            #[expect(clippy::cast_precision_loss)]
             let bucket_idx = ((centroid_value - axis_interval.min) / axis_interval.size()
                 * NUM_BUCKETS as f64)
                 .floor()
@@ -120,6 +124,7 @@ impl BVHTree {
 
         let mut costs = [0.; NUM_BUCKETS - 1];
 
+        #[expect(clippy::cast_precision_loss)]
         for (i, cost) in costs.iter_mut().enumerate().take(NUM_BUCKETS - 1) {
             let mut left_box = Aabb::new();
             let mut right_box = Aabb::new();
@@ -147,6 +152,7 @@ impl BVHTree {
             .map(|(idx, _)| idx)
             .unwrap();
 
+        #[expect(clippy::cast_precision_loss)]
         let split_pos = axis_interval.min
             + (axis_interval.size() * (min_cost_idx + 1) as f64 / NUM_BUCKETS as f64);
 
@@ -180,10 +186,9 @@ impl BVHTree {
                 left_aabb.overlaps(&object_aabb),
                 right_aabb.overlaps(&object_aabb),
             ) {
-                (true, true) => both.add(object),
                 (true, false) if centroid_value < split_pos => left.add(object),
                 (false, true) if centroid_value >= split_pos => right.add(object),
-                _ => both.add(object), // Fallback for edge cases
+                _ => both.add(object),
             }
         }
 

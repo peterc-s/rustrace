@@ -58,6 +58,7 @@ impl HittableList {
     }
 
     /// Create a new, empty [`HittableList`].
+    #[must_use]
     pub fn new() -> Self {
         Self { objects: vec![] }
     }
@@ -93,7 +94,7 @@ impl Hittable for HittableList {
         let mut out_rec: Option<HitRecord> = None;
         let mut closest_so_far = ray_t.max;
 
-        for object in self.objects.iter() {
+        for object in &self.objects {
             if let Some(rec) = object.hit(r, interval![ray_t.min, closest_so_far]) {
                 closest_so_far = rec.t;
                 out_rec = Some(rec);

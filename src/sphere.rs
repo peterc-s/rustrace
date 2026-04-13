@@ -39,11 +39,11 @@ impl Sphere {
 impl Hittable for Sphere {
     /// Check if a given [`Ray`] hit the sphere. Returns a [`Some(HitRecord)`](Option<HitRecord>)
     /// with the closest intersection if a [ray](Ray) intersects it, otherwise [`None`].
-    fn hit(&self, r: &Ray, ray_t: Interval) -> Option<HitRecord<'_>> {
-        let oc = self.centre - r.origin;
-        let a = r.direction.length_squared();
-        let h = dot(&r.direction, &oc);
-        let c = oc.length_squared() - self.radius * self.radius;
+    fn hit(&self, ray: &Ray, ray_t: Interval) -> Option<HitRecord<'_>> {
+        let origin_to_centre = self.centre - ray.origin;
+        let a = ray.direction.length_squared();
+        let h = dot(&ray.direction, &origin_to_centre);
+        let c = origin_to_centre.length_squared() - self.radius * self.radius;
         let discriminant = h * h - a * c;
 
         if discriminant < 0.0 {
@@ -60,15 +60,15 @@ impl Hittable for Sphere {
             }
         }
 
-        let t = root;
-        let p = r.at(root);
-        let outward_norm = (p - self.centre) / self.radius;
-        let norm = (p - self.centre) / self.radius;
+        let t_value = root;
+        let hit_point = ray.at(root);
+        let outward_norm = (hit_point - self.centre) / self.radius;
+        let norm = (hit_point - self.centre) / self.radius;
         let mat = &(*self.mat);
 
         let mut rec = HitRecord {
-            t,
-            p,
+            t: t_value,
+            p: hit_point,
             norm,
             mat,
             front_face: false,
@@ -77,7 +77,7 @@ impl Hittable for Sphere {
         // DEBUG: Check that ray intersects bound
         // assert!(self.bound().ray_hit(r).is_some());
 
-        rec.set_face_norm(r, &outward_norm);
+        rec.set_face_norm(ray, &outward_norm);
 
         Some(rec)
     }

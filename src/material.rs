@@ -10,19 +10,13 @@ use crate::{
     vec3,
     vec3::{dot, Vec3},
 };
-use anyhow::Result;
-use rand::{rngs::SmallRng, Rng};
+use rand::{rngs::SmallRng, RngExt as _};
 
 /// This trait indicates a struct is a material and allows the material to
 /// [scatter](method@Material::scatter()) incident light.
 pub trait Material: Debug + Sync + Send {
     /// Scatter incident light/[ray](Ray)s according to the materials properties.
-    fn scatter(
-        &self,
-        r_in: &Ray,
-        rec: &HitRecord,
-        rng: Option<&mut SmallRng>,
-    ) -> Result<(Ray, Vec3)>;
+    fn scatter(&self, r_in: &Ray, rec: &HitRecord, rng: Option<&mut SmallRng>) -> (Ray, Vec3);
 
     /// Clones a [boxed](Box) material.
     fn clone_box(&self) -> Box<dyn Material>;
@@ -38,6 +32,7 @@ pub struct Lambertian {
 impl Lambertian {
     /// Create a new [`Lambertian`] with the given `albedo` - the amount of each colour
     /// reflected from the surface as a [`Vec3`].
+    #[must_use]
     pub fn new(albedo: Vec3) -> Self {
         Self { albedo }
     }
@@ -45,19 +40,14 @@ impl Lambertian {
 
 impl Material for Lambertian {
     /// Scatter light [ray](Ray)s with true Lambertian reflectance.
-    fn scatter(
-        &self,
-        _r_in: &Ray,
-        rec: &HitRecord,
-        rng: Option<&mut SmallRng>,
-    ) -> Result<(Ray, Vec3)> {
+    fn scatter(&self, _r_in: &Ray, rec: &HitRecord, rng: Option<&mut SmallRng>) -> (Ray, Vec3) {
         let mut scatter_dir = rec.norm + Vec3::random_unit(rng.unwrap());
 
         if scatter_dir.near_zero() {
-            scatter_dir = rec.norm
+            scatter_dir = rec.norm;
         }
 
-        Ok((ray![rec.p, scatter_dir], self.albedo))
+        (ray![rec.p, scatter_dir], self.albedo)
     }
 
     fn clone_box(&self) -> Box<dyn Material> {
@@ -75,10 +65,15 @@ pub struct Metal {
 
 impl Metal {
     /// Create a new [`Metal`] with the given `fuzz` (must be inclusively between 0 and 1).
+    ///
+    /// # Panics
+    ///
+    /// If `fuzz` exceeds the range `0.0..=1.0`.
+    #[must_use]
     pub fn new(albedo: Vec3, fuzz: f64) -> Self {
         assert!(
             (0.0..=1.0).contains(&fuzz),
-            "Fuzz may not exceed 0.0 to 0.1"
+            "Fuzz may not exceed 0.0 to 1.0"
         );
         Self { albedo, fuzz }
     }
@@ -87,15 +82,10 @@ impl Metal {
 impl Material for Metal {
     /// Scatter light [ray](Ray)s with metal reflectance. Perfect reflectance if `fuzz`
     /// is `0`.
-    fn scatter(
-        &self,
-        r_in: &Ray,
-        rec: &HitRecord,
-        rng: Option<&mut SmallRng>,
-    ) -> Result<(Ray, Vec3)> {
+    fn scatter(&self, r_in: &Ray, rec: &HitRecord, rng: Option<&mut SmallRng>) -> (Ray, Vec3) {
         let mut reflected = r_in.direction.reflect(&rec.norm);
         reflected = reflected.unit() + (Vec3::random_unit(rng.unwrap()) * self.fuzz);
-        Ok((ray![rec.p, reflected], self.albedo))
+        (ray![rec.p, reflected], self.albedo)
     }
 
     fn clone_box(&self) -> Box<dyn Material> {
@@ -112,6 +102,7 @@ pub struct Dielectric {
 
 impl Dielectric {
     /// Create a new [`Dielectric`] with the given refraction index.
+    #[must_use]
     pub fn new(refraction_index: f64) -> Self {
         Self { refraction_index }
     }
@@ -129,12 +120,7 @@ impl Dielectric {
 impl Material for Dielectric {
     /// Scatter light [ray](Ray)s with refraction and reflection based on Snell's law and
     /// the Schlick approximation.
-    fn scatter(
-        &self,
-        r_in: &Ray,
-        rec: &HitRecord,
-        rng: Option<&mut SmallRng>,
-    ) -> Result<(Ray, Vec3)> {
+    fn scatter(&self, r_in: &Ray, rec: &HitRecord, rng: Option<&mut SmallRng>) -> (Ray, Vec3) {
         let ri = if rec.front_face {
             1.0 / self.refraction_index
         } else {
@@ -146,14 +132,15 @@ impl Material for Dielectric {
         let sin_theta = (1.0 - cos_theta * cos_theta).sqrt();
 
         let cannot_refract = ri * sin_theta > 1.0;
-        let direction = match cannot_refract
+        let direction = if cannot_refract
             || Self::reflectance(cos_theta, ri) > rng.unwrap().random_range(0.0..=1.0)
         {
-            true => unit_dir.reflect(&rec.norm),
-            false => unit_dir.refract(&rec.norm, ri),
+            unit_dir.reflect(&rec.norm)
+        } else {
+            unit_dir.refract(&rec.norm, ri)
         };
 
-        Ok((ray![rec.p, direction], vec3![1.0, 1.0, 1.0]))
+        (ray![rec.p, direction], vec3![1.0, 1.0, 1.0])
     }
 
     fn clone_box(&self) -> Box<dyn Material> {

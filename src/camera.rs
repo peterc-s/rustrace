@@ -7,8 +7,9 @@ use std::sync::Mutex;
 
 use anyhow::{anyhow, Result};
 use image::RgbImage;
+use rand::rngs::SysRng;
 use rand::SeedableRng;
-use rand::{rngs::SmallRng, Rng};
+use rand::{rngs::SmallRng, RngExt as _};
 use rayon::iter::{IntoParallelIterator, ParallelIterator};
 
 use crate::hit::Hittable;
@@ -29,13 +30,13 @@ pub enum AntiAliasing {
     Random(u16),
 }
 
-/// Trait to support [AntiAliasing::Grid].
+/// Trait to support [`AntiAliasing::Grid`].
 trait AntiAliasingGrid {
     fn sample_grid(self, sample: u16) -> Result<Vec3>;
     fn get_ray_grid(self, i: u32, j: u32, sample: u16, rng: &mut SmallRng) -> Result<Ray>;
 }
 
-/// Trait to support [AntiAliasing::Random].
+/// Trait to support [`AntiAliasing::Random`].
 trait AntiAliasingRandom {
     fn sample_random(self, rng: &mut SmallRng) -> Result<Vec3>;
     fn get_ray_random(self, i: u32, j: u32, rng: &mut SmallRng) -> Result<Ray>;
@@ -81,6 +82,7 @@ impl Default for CameraBuilder {
 #[allow(dead_code)]
 impl CameraBuilder {
     /// Set the aspect ratio of the [`CameraBuilder`].
+    #[must_use]
     pub fn set_aspect_ratio(self, aspect_ratio: f64) -> CameraBuilder {
         CameraBuilder {
             aspect_ratio,
@@ -89,6 +91,7 @@ impl CameraBuilder {
     }
 
     /// Set the image width of the [`CameraBuilder`].
+    #[must_use]
     pub fn set_image_width(self, image_width: u32) -> CameraBuilder {
         CameraBuilder {
             image_width,
@@ -97,6 +100,7 @@ impl CameraBuilder {
     }
 
     /// Set the [anti-aliasing mode](AntiAliasing) of the [`CameraBuilder`].
+    #[must_use]
     pub fn set_anti_aliasing(self, anti_aliasing: AntiAliasing) -> CameraBuilder {
         CameraBuilder {
             anti_aliasing,
@@ -105,31 +109,37 @@ impl CameraBuilder {
     }
 
     /// Set the maximum number of ray bounces to trace for the [`CameraBuilder`].
+    #[must_use]
     pub fn set_max_depth(self, max_depth: u32) -> CameraBuilder {
         CameraBuilder { max_depth, ..self }
     }
 
     /// Set the vertical field of view of the [`CameraBuilder`].
+    #[must_use]
     pub fn set_vfov(self, vfov: u16) -> CameraBuilder {
         CameraBuilder { vfov, ..self }
     }
 
     /// Set the position the [`Camera`] should look from once [built](CameraBuilder::build()).
+    #[must_use]
     pub fn set_look_from(self, look_from: Vec3) -> CameraBuilder {
         CameraBuilder { look_from, ..self }
     }
 
     /// Set the position the [`Camera`] should look at once [built](CameraBuilder::build()).
+    #[must_use]
     pub fn set_look_at(self, look_at: Vec3) -> CameraBuilder {
         CameraBuilder { look_at, ..self }
     }
 
     /// Set the camera-relative up direction for the [`CameraBuilder`].
+    #[must_use]
     pub fn set_v_up(self, v_up: Vec3) -> CameraBuilder {
         CameraBuilder { v_up, ..self }
     }
 
     /// Set the defocus angle for the [`CameraBuilder`].
+    #[must_use]
     pub fn set_defocus_angle(self, defocus_angle: f64) -> CameraBuilder {
         CameraBuilder {
             defocus_angle,
@@ -138,26 +148,31 @@ impl CameraBuilder {
     }
 
     /// Set the focal distance for the [`CameraBuilder`].
+    #[must_use]
     pub fn set_focus_dist(self, focus_dist: f64) -> CameraBuilder {
         CameraBuilder { focus_dist, ..self }
     }
 
     /// Build a [`Camera`] from the [`CameraBuilder`].
+    #[must_use]
     pub fn build(self) -> Camera {
-        let mut image_height = (self.image_width as f64 / self.aspect_ratio) as u32;
+        #[expect(clippy::cast_possible_truncation)]
+        #[expect(clippy::cast_sign_loss)]
+        let mut image_height = (f64::from(self.image_width) / self.aspect_ratio) as u32;
         image_height = if image_height < 1 { 1 } else { image_height };
 
         let samples_scale = match self.anti_aliasing {
-            AntiAliasing::Grid(size) => 1.0 / (size.pow(2) as f64),
-            AntiAliasing::Random(number) => 1.0 / (number as f64),
+            AntiAliasing::Grid(size) => 1.0 / f64::from(size.pow(2)),
+            AntiAliasing::Random(number) => 1.0 / f64::from(number),
         };
 
         let centre = self.look_from;
 
-        let theta = deg_to_rad(self.vfov as f64);
+        let theta = deg_to_rad(f64::from(self.vfov));
         let h = (theta / 2.0).tan();
         let viewport_height = 2.0 * h * self.focus_dist;
-        let viewport_width = viewport_height * (self.image_width as f64 / image_height as f64);
+        let viewport_width =
+            viewport_height * (f64::from(self.image_width) / f64::from(image_height));
 
         let w = (self.look_from - self.look_at).unit();
         let u = (cross(&self.v_up, &w)).unit();
@@ -226,10 +241,10 @@ impl AntiAliasingGrid for Camera {
     /// Sample on a unit grid with sample number `sample`.
     fn sample_grid(self, sample: u16) -> Result<Vec3> {
         if let AntiAliasing::Grid(size) = self.anti_aliasing {
-            let grid_size = size as f64;
+            let grid_size = f64::from(size);
             Ok(vec3![
-                0.5 - (sample % size) as f64 / (grid_size - 1.0),
-                0.5 - (sample / size) as f64 / (grid_size - 1.0),
+                0.5 - f64::from(sample % size) / (grid_size - 1.0),
+                0.5 - f64::from(sample / size) / (grid_size - 1.0),
                 0.0
             ])
         } else {
@@ -243,8 +258,8 @@ impl AntiAliasingGrid for Camera {
     fn get_ray_grid(self, i: u32, j: u32, sample: u16, rng: &mut SmallRng) -> Result<Ray> {
         let offset = self.sample_grid(sample)?;
         let pixel_sample = self.pixel00_loc
-            + (self.pixel_delta_u * (i as f64 + offset[0]))
-            + (self.pixel_delta_v * (j as f64 + offset[1]));
+            + (self.pixel_delta_u * (f64::from(i) + offset[0]))
+            + (self.pixel_delta_v * (f64::from(j) + offset[1]));
 
         let ray_origin = if self.defocus_angle <= 0.0 {
             self.centre
@@ -261,6 +276,7 @@ impl AntiAliasingGrid for Camera {
 impl AntiAliasingRandom for Camera {
     /// Randomly sample a [ray](Ray) offset in a unit square.
     fn sample_random(self, rng: &mut SmallRng) -> Result<Vec3> {
+        #[allow(clippy::match_wildcard_for_single_variants)]
         match self.anti_aliasing {
             AntiAliasing::Random(_) => Ok(vec3![
                 rng.random_range(-0.5..=0.5),
@@ -277,8 +293,8 @@ impl AntiAliasingRandom for Camera {
     fn get_ray_random(self, i: u32, j: u32, rng: &mut SmallRng) -> Result<Ray> {
         let offset = self.sample_random(rng)?;
         let pixel_sample = self.pixel00_loc
-            + (self.pixel_delta_u * (i as f64 + offset[0]))
-            + (self.pixel_delta_v * (j as f64 + offset[1]));
+            + (self.pixel_delta_u * (f64::from(i) + offset[0]))
+            + (self.pixel_delta_v * (f64::from(j) + offset[1]));
 
         let ray_origin = if self.defocus_angle <= 0.0 {
             self.centre
@@ -301,7 +317,7 @@ impl Defocus for Camera {
 }
 
 impl Camera {
-    /// Colour a [ray](Ray) recursively with a max further `depth`. Uses [Material::scatter()]
+    /// Colour a [ray](Ray) recursively with a max further `depth`. Uses [`crate::material::Material::scatter()`]
     /// to decide attenuation and the next ray direction.
     fn ray_colour(r: &Ray, depth: u32, world: &dyn Hittable, rng: &mut SmallRng) -> Vec3 {
         if depth == 0 {
@@ -309,10 +325,8 @@ impl Camera {
         }
 
         if let Some(rec) = world.hit(r, interval![0.001, f64::INFINITY]) {
-            if let Ok((scattered, attenuation)) = rec.mat.scatter(r, &rec, Some(rng)) {
-                return attenuation * Camera::ray_colour(&scattered, depth - 1, world, rng);
-            }
-            return vec3![0.0, 0.0, 0.0];
+            let (scattered, attenuation) = rec.mat.scatter(r, &rec, Some(rng));
+            return attenuation * Camera::ray_colour(&scattered, depth - 1, world, rng);
         }
 
         let unit_dir = r.direction.unit();
@@ -322,12 +336,22 @@ impl Camera {
 
     /// Render the given `world`, outputting to the file at path `output`.
     /// Uses [rayon] to paralellise rendering rows.
+    ///
+    /// # Panics
+    ///
+    /// May panic if unable to get or use the system random, if the wrong sampling function is
+    /// called for the current type of [`AntiAliasing`], or if conversion from [`usize`] to [`u32`]
+    /// via [`u32::try_from`] fails.
+    ///
+    /// # Errors
+    ///
+    /// May throw an error if image saving fails.
     pub fn render(self, output: &str, world: &dyn Hittable) -> Result<()> {
         let img = Mutex::new(RgbImage::new(self.image_width, self.image_height));
         let lines_done = AtomicUsize::new(0);
 
         (0..self.image_height).into_par_iter().for_each(|j| {
-            let mut rng = SmallRng::from_os_rng();
+            let mut rng = SmallRng::try_from_rng(&mut SysRng).unwrap();
             let mut row = vec![];
             for i in 0..self.image_width {
                 let mut pixel_colour = vec3![0.0, 0.0, 0.0];
@@ -360,7 +384,11 @@ impl Camera {
 
             let mut img = img.lock().unwrap();
             for (i, pixel) in row.into_iter().enumerate() {
-                img.put_pixel(i as u32, j, pixel);
+                img.put_pixel(
+                    u32::try_from(i).expect("couldn't convert usize to u32"),
+                    j,
+                    pixel,
+                );
             }
         });
 

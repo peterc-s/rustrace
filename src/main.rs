@@ -1,6 +1,11 @@
+use std::path::PathBuf;
+
 use anyhow::Result;
 use mimalloc::MiMalloc;
-use rand::{rngs::SmallRng, Rng, SeedableRng};
+use rand::{
+    rngs::{SmallRng, SysRng},
+    RngExt as _, SeedableRng,
+};
 use rustrace::{
     bvh::BVHTree,
     camera::{AntiAliasing, CameraBuilder},
@@ -32,12 +37,12 @@ fn main() -> Result<()> {
     // Scene
     let mut hit_list = HittableList::default();
 
-    let material_teapot = Box::new(Metal::new(vec3![1., 1., 1.], 0.0));
+    let material_teapot = Metal::new(vec3![1., 1., 1.], 0.0);
     // let material_teapot = Box::new(Lambertian::new(vec3![1., 1., 1.]));
     // let material_teapot = Box::new(Dielectric::new(1.5));
 
     // TODO: get path in a better way than this
-    let teapot = Mesh::from_obj("objs/teapot.obj", material_teapot)?;
+    let teapot = Mesh::from_obj(&PathBuf::from("objs/teapot.obj"), &material_teapot)?;
     hit_list.add(Box::new(teapot));
 
     let material_ground = Box::new(Lambertian::new(vec3![0.8, 0.8, 0.0]));
@@ -75,14 +80,14 @@ fn main() -> Result<()> {
     //     mat: material3,
     // }));
 
-    let mut rng = SmallRng::from_os_rng();
+    let mut rng = SmallRng::try_from_rng(&mut SysRng)?;
     for a in -11..11 {
         for b in -11..11 {
             let choose_mat = rng.random_range(0.0..=1.0);
             let centre = vec3![
-                a as f64 + 0.9 * rng.random_range(0.0..=1.0),
+                f64::from(a) + 0.9 * rng.random_range(0.0..=1.0),
                 0.2 - 2.,
-                b as f64 + 0.9 * rng.random_range(0.0..=1.0)
+                f64::from(b) + 0.9 * rng.random_range(0.0..=1.0)
             ];
 
             if (centre - vec3![4.0, 0.2, 0.0]).length() > 0.9 {
@@ -104,7 +109,7 @@ fn main() -> Result<()> {
                     radius: 0.2,
                     mat,
                 }));
-            };
+            }
         }
     }
 

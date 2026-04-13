@@ -4,6 +4,7 @@
 use std::{
     fs::File,
     io::{BufRead, BufReader},
+    path::Path,
 };
 
 use crate::{
@@ -33,9 +34,17 @@ impl Mesh {
     // TODO: investigate moving elsewhere
     /// Basic OBJ parser, builds up a [`HittableList`] of [`Triangle`]s which
     /// it then constructs a [`BVHTree`] out of.
-    pub fn from_obj(path: &str, mat: Box<dyn Material>) -> Result<Self> {
+    ///
+    /// # Panics
+    ///
+    /// If a prefix or required part of a line isn't found.
+    ///
+    /// # Errors
+    ///
+    /// If opening the file or parsing things that are supposed to be numbers fails.
+    pub fn from_obj<P: AsRef<Path>>(path: &P, mat: &dyn Material) -> Result<Self> {
         fn parse_face_vertex(s: &str) -> Result<(usize, usize)> {
-            let parts: Vec<&str> = s.split("/").collect();
+            let parts: Vec<&str> = s.split('/').collect();
             let v_idx: usize = parts[0].parse::<usize>()? - 1;
             let n_idx = if parts.len() > 2 && !parts[2].is_empty() {
                 parts[2].parse::<usize>()? - 1
@@ -91,10 +100,10 @@ impl Mesh {
                     let (mut v2, mut n2) = parse_face_vertex(face_verts[2])?;
 
                     let tri_verts = [vertices[v0], vertices[v1], vertices[v2]];
-                    let tri_normals = if !normals.is_empty() {
-                        Some([normals[n0], normals[n1], normals[n2]])
-                    } else {
+                    let tri_normals = if normals.is_empty() {
                         None
+                    } else {
+                        Some([normals[n0], normals[n1], normals[n2]])
                     };
 
                     triangles.add(Box::new(Triangle::new(
@@ -109,10 +118,10 @@ impl Mesh {
                         let (v_new, n_new) = parse_face_vertex(face_vert)?;
 
                         let tri_verts = [vertices[v0], vertices[v2], vertices[v_new]];
-                        let tri_normals = if !normals.is_empty() {
-                            Some([normals[n0], normals[n1], normals[n2]])
-                        } else {
+                        let tri_normals = if normals.is_empty() {
                             None
+                        } else {
+                            Some([normals[n0], normals[n1], normals[n2]])
                         };
 
                         triangles.add(Box::new(Triangle::new(

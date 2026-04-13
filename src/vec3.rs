@@ -8,7 +8,7 @@ use image::Rgb;
 
 use crate::interval;
 use interval::Interval;
-use rand::{rngs::SmallRng, Rng};
+use rand::{rngs::SmallRng, RngExt as _};
 
 /// The [`Vec3`] itself, simply an abstraction over a `3`-size array with
 /// most operation traits defined.
@@ -28,6 +28,7 @@ macro_rules! vec3 {
 #[allow(dead_code)]
 impl Vec3 {
     /// Create a new [`Vec3`] with the specified values.
+    #[must_use]
     pub fn new(x: f64, y: f64, z: f64) -> Self {
         Vec3 { e: [x, y, z] }
     }
@@ -43,6 +44,7 @@ impl Vec3 {
     ///
     /// assert_eq!(v.length_squared(), 12.0);
     /// ```
+    #[must_use]
     pub fn length_squared(&self) -> f64 {
         let x: f64 = self[0];
         let y: f64 = self[1];
@@ -61,6 +63,7 @@ impl Vec3 {
     ///
     /// assert_eq!(v.length(), 5.0);
     /// ```
+    #[must_use]
     pub fn length(&self) -> f64 {
         self.length_squared().sqrt()
     }
@@ -84,6 +87,7 @@ impl Vec3 {
     /// );
     /// assert_eq!(cross(&v, &v.unit()).length(), 0.0);
     /// ````
+    #[must_use]
     pub fn unit(&self) -> Self {
         *self / self.length()
     }
@@ -100,6 +104,7 @@ impl Vec3 {
     ///
     /// assert_eq!(r, vec3![-1.0, 1.0, 0.0]);
     /// ```
+    #[must_use]
     pub fn reflect(&self, norm: &Vec3) -> Self {
         *self - (*norm * 2.0 * dot(self, norm))
     }
@@ -122,6 +127,7 @@ impl Vec3 {
     /// assert!((no_refraction - v).length().abs() < f64::EPSILON);
     /// assert_eq!(refraction, vec3![0.0, 1.0, 0.0]);
     /// ```
+    #[must_use]
     pub fn refract(&self, norm: &Vec3, etai_over_etat: f64) -> Self {
         let cos_theta = dot(&-*self, norm).min(1.0);
         let r_out_perp = (*self + *norm * cos_theta) * etai_over_etat;
@@ -144,6 +150,7 @@ impl Vec3 {
     ///
     /// assert!(!v.near_zero());
     /// ```
+    #[must_use]
     pub fn near_zero(self) -> bool {
         let eps = 1e-8;
         (self[0].abs() < eps) && (self[1].abs() < eps) && (self[2].abs() < eps)
@@ -219,8 +226,11 @@ impl Vec3 {
     /// assert_eq!(c[1], 0);
     /// assert_eq!(c[2], 0);
     /// ```
+    #[must_use]
     pub fn to_rgb(self) -> Rgb<u8> {
         let intensity = interval![0.000, 0.999];
+        #[expect(clippy::cast_possible_truncation)]
+        #[expect(clippy::cast_sign_loss)]
         Rgb([
             (intensity.clamp(linear_to_gamma(self[0])) * 256.0) as u8,
             (intensity.clamp(linear_to_gamma(self[1])) * 256.0) as u8,
@@ -244,6 +254,7 @@ impl Vec3 {
 /// assert_eq!(dot(&v0, &v1), 0.0);
 /// assert_eq!(dot(&v0, &v2), 3.0);
 /// ```
+#[must_use]
 pub fn dot(u: &Vec3, v: &Vec3) -> f64 {
     u[0] * v[0] + u[1] * v[1] + u[2] * v[2]
 }
@@ -261,6 +272,7 @@ pub fn dot(u: &Vec3, v: &Vec3) -> f64 {
 ///
 /// assert_eq!(cross(&v0, &v1).length(), 0.0);
 /// ```
+#[must_use]
 pub fn cross(u: &Vec3, v: &Vec3) -> Vec3 {
     vec3![
         u[1] * v[2] - u[2] * v[1],
@@ -269,7 +281,7 @@ pub fn cross(u: &Vec3, v: &Vec3) -> Vec3 {
     ]
 }
 
-/// Convert linear values to gamma values. Essentially an [f64::sqrt] with
+/// Convert linear values to gamma values. Essentially an [`f64::sqrt`] with
 /// a check that the operand is positive.
 fn linear_to_gamma(linear_component: f64) -> f64 {
     if linear_component > 0.0 {
@@ -289,7 +301,7 @@ impl Add for Vec3 {
 
 impl AddAssign for Vec3 {
     fn add_assign(&mut self, other: Self) {
-        *self = vec3![self[0] + other[0], self[1] + other[1], self[2] + other[2]]
+        *self = vec3![self[0] + other[0], self[1] + other[1], self[2] + other[2]];
     }
 }
 
@@ -303,7 +315,7 @@ impl Sub for Vec3 {
 
 impl SubAssign for Vec3 {
     fn sub_assign(&mut self, other: Self) {
-        *self = vec3![self[0] - other[0], self[1] - other[1], self[2] - other[2]]
+        *self = vec3![self[0] - other[0], self[1] - other[1], self[2] - other[2]];
     }
 }
 
@@ -339,7 +351,7 @@ where
             self[0] * scalar.into(),
             self[1] * scalar.into(),
             self[2] * scalar.into()
-        ]
+        ];
     }
 }
 
@@ -367,7 +379,7 @@ where
             self[0] / scalar.into(),
             self[1] / scalar.into(),
             self[2] / scalar.into()
-        ]
+        ];
     }
 }
 

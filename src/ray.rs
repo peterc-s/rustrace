@@ -41,6 +41,7 @@ impl Ray {
     ///
     /// assert_eq!(ray.at(10.0), vec3![10.0, 20.0, 0.0]);
     /// ```
+    #[must_use]
     pub fn at(self, t: f64) -> Vec3 {
         self.origin + self.direction * t
     }

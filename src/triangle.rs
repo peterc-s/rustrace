@@ -25,15 +25,15 @@ impl Triangle {
     /// Create a new [`Triangle`] with the given `vertices`, `normals`, and `mat`.
     /// If no `normals` are supplied, they are calculated by taking the
     /// [cross product](crate::vec3::cross) of the edges `v0 -> v1` and `v1 -> v2`.
+    #[must_use]
     pub fn new(vertices: [Vec3; 3], normals: Option<[Vec3; 3]>, mat: Box<dyn Material>) -> Self {
-        let normals = match normals {
-            Some(n) => n,
-            None => {
-                let e1 = vertices[1] - vertices[0];
-                let e2 = vertices[2] - vertices[1];
-                let n = cross(&e1, &e2);
-                [n, n, n]
-            }
+        let normals = if let Some(n) = normals {
+            n
+        } else {
+            let e1 = vertices[1] - vertices[0];
+            let e2 = vertices[2] - vertices[1];
+            let n = cross(&e1, &e2);
+            [n, n, n]
         };
 
         Self {
@@ -56,10 +56,10 @@ impl Hittable for Triangle {
     /// intersects the [`Triangle`], and where. See [wikipedia](https://en.wikipedia.org/wiki/M%C3%B6ller%E2%80%93Trumbore_intersection_algorithm).
     /// Returns a [`Some(HitRecord)`](Option<HitRecord>) if a hit occurred,
     /// otherwise [`None`].
-    fn hit(&self, r: &Ray, _ray_t: Interval) -> Option<HitRecord<'_>> {
+    fn hit(&self, ray: &Ray, _ray_t: Interval) -> Option<HitRecord<'_>> {
         let e1 = self.vertices[1] - self.vertices[0];
         let e2 = self.vertices[2] - self.vertices[0];
-        let ray_cross_e2 = cross(&r.direction, &e2);
+        let ray_cross_e2 = cross(&ray.direction, &e2);
         let det = dot(&e1, &ray_cross_e2);
 
         if det > -f64::EPSILON && det < f64::EPSILON {
@@ -67,32 +67,32 @@ impl Hittable for Triangle {
         }
 
         let inv_det = 1. / det;
-        let s = r.origin - self.vertices[0];
+        let s = ray.origin - self.vertices[0];
         let u = dot(&s, &ray_cross_e2) * inv_det;
         if !(0. ..=1.).contains(&u) {
             return None;
         }
 
         let s_cross_e1 = cross(&s, &e1);
-        let v = inv_det * dot(&r.direction, &s_cross_e1);
+        let v = inv_det * dot(&ray.direction, &s_cross_e1);
         if v < 0. || u + v > 1. {
             return None;
         }
 
-        let t = inv_det * dot(&e2, &s_cross_e1);
-        if t > f64::EPSILON {
-            let p = r.at(t - f64::EPSILON);
+        let t_value = inv_det * dot(&e2, &s_cross_e1);
+        if t_value > f64::EPSILON {
+            let p = ray.at(t_value - f64::EPSILON);
             let mat = &(*self.mat);
 
             let mut rec = HitRecord {
                 p,
                 norm: self.get_norm(u, v),
                 mat,
-                t,
+                t: t_value,
                 front_face: true,
             };
 
-            rec.set_face_norm(r, &self.get_norm(u, v));
+            rec.set_face_norm(ray, &self.get_norm(u, v));
 
             Some(rec)
         } else {

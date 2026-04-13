@@ -12,6 +12,7 @@ use std::f64::consts::PI;
 ///
 /// assert_eq!(deg_to_rad(360.0), 2.0 * PI);
 /// ```
+#[must_use]
 pub fn deg_to_rad(deg: f64) -> f64 {
     (deg * PI) / 180.0
 }

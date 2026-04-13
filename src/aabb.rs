@@ -18,6 +18,7 @@ pub enum SplitAxis {
 
 impl SplitAxis {
     /// Given an [`Aabb`], returns the longest axis to split along.
+    #[must_use]
     pub fn choose_from_aabb(aabb: Aabb) -> Self {
         let x = aabb.x.size();
         let y = aabb.y.size();
@@ -48,7 +49,8 @@ impl Default for Aabb {
 }
 
 impl Aabb {
-    /// Creates an empty [`Aabb`] where each [`Interval`] is made with [Interval::empty()].
+    /// Creates an empty [`Aabb`] where each [`Interval`] is made with [`Interval::empty()`].
+    #[must_use]
     pub fn new() -> Self {
         Self {
             x: Interval::empty(),
@@ -130,6 +132,7 @@ impl Aabb {
     /// // They should now overlap
     /// assert!(aabb_0.overlaps(&aabb_1));
     /// ```
+    #[must_use]
     pub fn overlaps(&self, other: &Self) -> bool {
         self.x.overlaps(&other.x) && self.y.overlaps(&other.y) && self.z.overlaps(&other.z)
     }
@@ -150,6 +153,7 @@ impl Aabb {
     /// assert!(!aabb.contains_point(vec3![-0.5, -0.5, -0.5]));
     /// assert!(aabb.contains_point(vec3![0.5, 0.5, 0.5]));
     /// ```
+    #[must_use]
     pub fn contains_point(&self, point: Vec3) -> bool {
         self.x.contains(point.e[0]) && self.y.contains(point.e[1]) && self.z.contains(point.e[2])
     }
@@ -174,6 +178,7 @@ impl Aabb {
     /// assert_eq!(right.x.min, 0.0);
     /// assert_eq!(right.x.max, 1.0);
     /// ````
+    #[must_use]
     pub fn split_at(&self, axis: SplitAxis, at: f64) -> (Aabb, Aabb) {
         let mut left = *self;
         let mut right = *self;
@@ -233,19 +238,20 @@ impl Aabb {
     ///
     /// assert!(miss.is_none());
     /// ```
+    #[must_use]
     pub fn ray_hit(&self, ray: &Ray) -> Option<f64> {
-        if self.contains_point(ray.origin) {
-            return Some(0.);
-        }
-
         fn plane_intersect(ray: &Ray, norm: &Vec3, offset: f64) -> Option<f64> {
             let n_d = dot(norm, &ray.direction);
-            if n_d != 0. {
+            if n_d == 0. {
+                None
+            } else {
                 let n_p = dot(norm, &ray.origin);
                 Some((offset - n_p) / n_d)
-            } else {
-                None
             }
+        }
+
+        if self.contains_point(ray.origin) {
+            return Some(0.);
         }
 
         // 6 planes: (normal, offset, axis indices to check, axes)
@@ -260,7 +266,7 @@ impl Aabb {
 
         let mut intersection_t = None;
 
-        for (norm, offset, (idx1, idx2), range1, range2) in planes.iter() {
+        for (norm, offset, (idx1, idx2), range1, range2) in &planes {
             if let Some(t) = plane_intersect(ray, norm, *offset) {
                 let intersect_point = ray.at(t);
 
@@ -297,6 +303,7 @@ impl Aabb {
     ///
     /// assert_eq!(aabb.centroid(), vec3![0.0, 0.0, 0.0]);
     /// ```
+    #[must_use]
     pub fn centroid(&self) -> Vec3 {
         vec3![self.x.mid(), self.y.mid(), self.z.mid()]
     }
@@ -317,6 +324,7 @@ impl Aabb {
     ///
     /// assert_eq!(aabb.surface_area(), 6.0);;
     /// ```
+    #[must_use]
     pub fn surface_area(&self) -> f64 {
         let x = self.x.size();
         let y = self.y.size();
