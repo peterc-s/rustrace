@@ -6,7 +6,7 @@ edition = "2021"
 [dependencies]
 anyhow = "1.0.102"
 image = "0.25.10"
-mimalloc = "0.1.48"
+mimalloc = "0.1.49"
 rand = "0.10.1"
 rayon = "1.10.0"
 
