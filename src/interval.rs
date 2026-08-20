@@ -1,7 +1,5 @@
 //! Contains the [`Interval`] struct.
 
-use core::f64;
-
 /// The [`Interval`] struct itself that can be used as either
 /// a closed or open interval. See
 /// [wikipedia](https://en.wikipedia.org/wiki/Interval_(mathematics))
